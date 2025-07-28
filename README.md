@@ -9,18 +9,19 @@ A collection of scripts to help organize and host dinner parties better! This ut
 ✅ **Configurable Defaults**: Customize default values for missing data
 ✅ **Data Quality Reporting**: Get detailed warnings about data issues
 ✅ **Flexible Input Handling**: Works with real-world messy CSV data
-🚧 **Unit Conversion** (Coming Soon): Automatically convert and aggregate different units
+✅ **Intelligent Unit Conversion**: Automatically converts and aggregates different units (e.g., "8 oz" + "1 cup" → "2 cups")
 
 ## Quick Start
 
 ### Prerequisites
 - Python 3.7 or higher
-- No external dependencies required (uses Python standard library)
+- Required dependencies: `pint` (for unit conversions)
 
 ### Installation
 ```bash
 git clone <your-repo-url>
 cd boh-infra
+pip install -r requirements.txt
 ```
 
 ### Basic Usage
@@ -81,6 +82,35 @@ python3 make_shopping_list.py ingredients.csv shopping_list.csv \
 | `--default-location` | Default store location for missing values | "Unknown" |
 | `--default-units` | Default units for missing values | "each" |
 | `--default-ingredient` | Default ingredient name for missing values | "Unknown Item" |
+| `--disable-unit-conversion` | Disable automatic unit conversion | False (conversion enabled) |
+
+### Unit Conversion Features
+
+The script automatically converts and aggregates ingredients with different units:
+
+**Supported Conversions:**
+- **Volume Units**: cups, tablespoons, teaspoons, fluid ounces
+- **Weight Units**: pounds, ounces, grams, kilograms
+- **Count Units**: each, cloves, heads, bunches, packages, containers, bottles, loaves
+- **Special Units**: sticks (butter = 4 oz)
+
+**Ingredient-Specific Conversions:**
+- **Sugar**: 1 cup ≈ 7.05 oz
+- **Flour**: 1 cup ≈ 4.25 oz
+- **Butter**: 1 cup ≈ 8 oz, 1 stick = 4 oz
+
+**Example Conversions:**
+```
+Milk: 8 fl oz + 1 cup → 2 cups
+Flour: 2 lbs + 16 oz → 3 pounds
+Sugar: 1 cup + 8 oz → 2.13 cups
+Butter: 1 stick + 4 oz → 0.5 pounds
+```
+
+**Disable Unit Conversion:**
+```bash
+python3 make_shopping_list.py ingredients.csv shopping_list.csv --disable-unit-conversion
+```
 
 ### Data Validation Features
 
@@ -105,6 +135,11 @@ Warnings:
   ⚠️  Row 6: Missing location, using 'Unknown'
   ⚠️  Row 8: Missing ingredient name
   ⚠️  Row 8: Skipping row due to missing critical data
+
+Unit Conversions Applied:
+  ✓ Milk: 8.0 fl oz + 1.0 cup → 2 cups
+  ✓ Flour: 2.0 lbs + 16.0 oz → 3 pounds
+  ✓ Sugar: 1.0 cup + 8.0 oz → 2.13 cups
 
 Shopping list written to: shopping_list.csv
 Total unique items: 8
@@ -141,11 +176,13 @@ Unknown,Salt,1.0,each,0.0
 
 ## Roadmap
 
-- [ ] **Unit Conversion**: Automatically convert between units (e.g., "8 oz" + "1 cup" = "2 cups")
-- [ ] **Smart Ingredient Matching**: Handle variations in ingredient names
+- [x] **Unit Conversion**: Automatically convert between units (e.g., "8 oz" + "1 cup" = "2 cups") ✅
+- [ ] **Enhanced Unit Conversion**: Add more ingredient-specific conversions (rice, pasta, etc.)
+- [ ] **Smart Ingredient Matching**: Handle variations in ingredient names ("tomato" vs "tomatoes")
 - [ ] **Store-specific Optimization**: Organize by store layout/aisles
 - [ ] **Price Tracking**: Integration with grocery store APIs
 - [ ] **Recipe Integration**: Direct import from recipe websites
+- [ ] **Meal Planning**: Multi-week planning with ingredient optimization
 
 ## Repository Structure
 
