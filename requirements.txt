@@ -1,0 +1,6 @@
+# Dinner Party Utility Requirements
+# Currently uses only Python standard library modules
+# Python 3.7+ required for type hints and other features
+
+# Future dependencies for unit conversion feature:
+# pint>=0.20.0  # For unit conversions (uncomment when implementing feature 2)
