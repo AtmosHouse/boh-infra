@@ -1,21 +1,20 @@
 # Dinner Party Utility 🍽️
 
-A collection of scripts to help organize and host dinner parties better! This utility takes a CSV of ingredients organized by dish and creates a consolidated shopping list with robust data validation and customizable defaults.
+Tools for converting natural language recipe ingredients into structured shopping lists.
 
 ## Features
 
+✅ **LLM-Powered Ingredient Parsing**: Convert recipe text into structured data using AI
+✅ **Multi-Recipe Processing**: Process entire folders of recipes at once
 ✅ **Smart Shopping List Generation**: Consolidates ingredients across multiple dishes
 ✅ **Robust Data Validation**: Handles missing, invalid, or malformed data gracefully
-✅ **Configurable Defaults**: Customize default values for missing data
-✅ **Data Quality Reporting**: Get detailed warnings about data issues
-✅ **Flexible Input Handling**: Works with real-world messy CSV data
 ✅ **Intelligent Unit Conversion**: Automatically converts and aggregates different units (e.g., "8 oz" + "1 cup" → "2 cups")
+✅ **Ingredient Deduplication**: Combines duplicate ingredients within and across recipes
 
 ## Quick Start
 
 ### Prerequisites
 - Python 3.7 or higher
-- Required dependencies: `pint` (for unit conversions)
 
 ### Installation
 ```bash
@@ -24,39 +23,151 @@ cd boh-infra
 pip install -r requirements.txt
 ```
 
-### Basic Usage
+Configure your LLM endpoint in `make_ingredient_list.py` or set:
 ```bash
-# Try it with the included example
-python3 make_shopping_list.py example_ingredients.csv my_shopping_list.csv
-
-# Or use your own CSV file
-python3 make_shopping_list.py ingredients.csv shopping_list.csv
+export OPENAI_API_KEY='your-key-here'
 ```
 
-## Input CSV Format
+### Basic Usage
 
-Your input CSV should have the following columns:
-
-| Column | Description | Required | Example |
-|--------|-------------|----------|---------|
-| `Ingredient` | Name of the ingredient | Yes | "Tomatoes" |
-| `Qty` | Quantity needed | No* | "2" or "1.5" |
-| `Units` | Unit of measurement | No* | "lbs", "cups", "each" |
-| `Location` | Where to buy it | No* | "Grocery Store" |
-| `Done?` | Already purchased? | No | "yes", "no", "true", "1" |
-| `Price` | Cost per unit | No | "3.50" |
-
-*\*Fields marked as "No" will use configurable default values when missing*
-
-### Example Input CSV
-```csv
-Ingredient,Qty,Units,Location,Done?,Price
-Tomatoes,2,lbs,Grocery Store,no,3.50
-Onions,,each,Grocery Store,no,0.75
-Garlic,1,head,Grocery Store,no,1.25
-Olive Oil,1,bottle,Grocery Store,yes,8.99
-Salt,,,,no,
+**Process multiple recipes at once (recommended):**
+```bash
+python process_recipes.py recipes/ -o ingredients.csv --shopping-list shopping.csv
 ```
+
+**Process a single recipe:**
+```bash
+python make_ingredient_list.py recipe.txt -d "Mushroom Wellington" ingredients.csv
+```
+
+**Consolidate into shopping list:**
+```bash
+python make_shopping_list.py ingredients.csv shopping.csv
+```
+
+## Workflow
+
+### 1. Collect Recipes
+
+Create a folder with your recipe text files. Recipes can be in any natural language format:
+
+```
+recipes/
+  wellington.txt
+  salad.txt
+  config.yaml
+```
+
+**Example recipe file (`wellington.txt`):**
+```
+For the Filling
+2 lbs ground beef
+1 large onion, diced
+3 cloves garlic, minced
+Salt and pepper to taste
+
+For the Sauce
+1 cup tomato sauce
+2 tablespoons olive oil
+```
+
+### 2. Create Config File
+
+Create `config.yaml` mapping dish names to recipe files:
+
+```yaml
+dishes:
+  "Beef Wellington": "wellington.txt"
+  "Caesar Salad": "salad.txt"
+```
+
+### 3. Generate Ingredient List
+
+```bash
+python process_recipes.py recipes/ -o ingredients.csv
+```
+
+This will:
+- Parse each recipe using the LLM
+- Normalize ingredient names (e.g., "fresh rosemary" → "rosemary")
+- Deduplicate ingredients within each recipe
+- Output a unified CSV with all dishes
+
+### 4. Fill In Details
+
+Open `ingredients.csv` and add:
+- `Location` (e.g., "Grocery Store", "Butcher", "Costco")
+- `Price` estimates (optional)
+
+### 5. Generate Shopping List
+
+```bash
+python make_shopping_list.py ingredients.csv shopping.csv
+```
+
+Or do steps 3-5 in one command:
+```bash
+python process_recipes.py recipes/ -o ingredients.csv --shopping-list shopping.csv
+```
+
+## Scripts Reference
+
+### `make_ingredient_list.py` - Parse Single Recipe
+
+```bash
+# From a text file
+python make_ingredient_list.py recipe.txt -d "Dish Name" output.csv
+
+# From direct text
+python make_ingredient_list.py "2 lbs tomatoes, garlic" -d "Pasta" output.csv
+
+# From stdin
+cat recipe.txt | python make_ingredient_list.py - -d "Soup" output.csv
+```
+
+### `process_recipes.py` - Process Multiple Recipes
+
+```bash
+# Basic usage
+python process_recipes.py recipes/ -o ingredients.csv
+
+# With shopping list generation
+python process_recipes.py recipes/ -o ingredients.csv --shopping-list shopping.csv
+
+# Custom config file name
+python process_recipes.py recipes/ -o ingredients.csv --config my_config.yaml
+```
+
+### `make_shopping_list.py` - Consolidate Shopping List
+
+```bash
+python make_shopping_list.py ingredients.csv shopping.csv
+```
+
+## CSV Formats
+
+### Ingredient List (output of parsing)
+
+| Column | Description |
+|--------|-------------|
+| `Dish` | Name of the dish |
+| `Ingredient` | Ingredient name |
+| `Qty` | Quantity (blank if unspecified) |
+| `Units` | Unit of measurement (blank if unspecified) |
+| `Location` | Where to buy (fill in manually) |
+| `Done?` | Already purchased? (default: False) |
+| `Price` | Cost (fill in manually) |
+| `Notes` | Preparation notes, sizes, etc. |
+
+### Shopping List (output of consolidation)
+
+| Column | Description |
+|--------|-------------|
+| `Location` | Store/location |
+| `Ingredient` | Consolidated ingredient name |
+| `Qty` | Total quantity needed |
+| `Units` | Unit of measurement |
+| `Price` | Total estimated cost |
 
 ## Advanced Usage
 
@@ -174,29 +285,17 @@ Unknown,Salt,1.0,each,0.0
 4. **Consolidation**: Sums quantities and prices for duplicate items
 5. **Output**: Generates a clean shopping list sorted by location and ingredient
 
-## Roadmap
-
-- [x] **Unit Conversion**: Automatically convert between units (e.g., "8 oz" + "1 cup" = "2 cups") ✅
-- [ ] **Enhanced Unit Conversion**: Add more ingredient-specific conversions (rice, pasta, etc.)
-- [ ] **Smart Ingredient Matching**: Handle variations in ingredient names ("tomato" vs "tomatoes")
-- [ ] **Store-specific Optimization**: Organize by store layout/aisles
-- [ ] **Price Tracking**: Integration with grocery store APIs
-- [ ] **Recipe Integration**: Direct import from recipe websites
-- [ ] **Meal Planning**: Multi-week planning with ingredient optimization
-
 ## Repository Structure
 
 ```
 boh-infra/
-├── make_shopping_list.py      # Main script
+├── process_recipes.py         # Multi-recipe processor (main entry point)
+├── make_ingredient_list.py    # Single recipe parser (LLM-powered)
+├── make_shopping_list.py      # Shopping list consolidator
 ├── requirements.txt           # Python dependencies
-├── example_ingredients.csv    # Sample input file
-└── README.md                 # This documentation
+├── example_ingredients.csv    # Sample ingredient CSV
+└── README.md                  # This documentation
 ```
-
-## Contributing
-
-This is a personal utility script, but suggestions and improvements are welcome!
 
 ## License
 
