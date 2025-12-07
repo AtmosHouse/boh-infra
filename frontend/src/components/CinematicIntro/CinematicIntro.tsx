@@ -31,19 +31,51 @@ const getScreens = (guestName?: string) => [
   ...(guestName
     ? [
         {
-          text: `Somewhere between the music and the clatter of pans, a place had already been set aside with ${guestName}'s name on it...`,
+          text: `Somewhere between the music and the clatter of pans, a place had already been set aside with {{${guestName}}}'s name on it...`,
         },
       ]
     : []),
 ];
 
+// Parse text into segments: regular text and highlighted names
+interface TextSegment {
+  type: 'text' | 'highlight';
+  content: string;
+}
+
+function parseTextWithHighlights(text: string): TextSegment[] {
+  const segments: TextSegment[] = [];
+  const regex = /\{\{([^}]+)\}\}/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+    }
+    segments.push({ type: 'highlight', content: match[1] });
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    segments.push({ type: 'text', content: text.slice(lastIndex) });
+  }
+
+  return segments;
+}
+
 function TypewriterText({ text, onComplete }: {
   text: string;
   onComplete: () => void;
 }) {
-  const [displayedText, setDisplayedText] = useState('');
+  const [charIndex, setCharIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Parse segments once
+  const segments = parseTextWithHighlights(text);
+  // Calculate total length (without the {{ }} markers)
+  const totalLength = segments.reduce((acc, seg) => acc + seg.content.length, 0);
 
   // Initialize audio
   useEffect(() => {
@@ -71,9 +103,9 @@ function TypewriterText({ text, onComplete }: {
 
     let index = 0;
     const timer = setInterval(() => {
-      if (index < text.length) {
-        setDisplayedText(text.slice(0, index + 1));
+      if (index < totalLength) {
         index++;
+        setCharIndex(index);
       } else {
         clearInterval(timer);
         setIsComplete(true);
@@ -92,11 +124,44 @@ function TypewriterText({ text, onComplete }: {
         audioRef.current.pause();
       }
     };
-  }, [text, onComplete]);
+  }, [totalLength, onComplete]);
+
+  // Render segments up to current character index
+  const renderSegments = () => {
+    let charsRemaining = charIndex;
+    const result: React.ReactNode[] = [];
+
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      if (charsRemaining <= 0) break;
+
+      const charsToShow = Math.min(charsRemaining, segment.content.length);
+      const displayText = segment.content.slice(0, charsToShow);
+      charsRemaining -= charsToShow;
+
+      if (segment.type === 'highlight') {
+        result.push(
+          <span
+            key={i}
+            className="text-gold font-semibold"
+            style={{
+              textShadow: '0 0 20px rgba(232, 185, 35, 0.6), 0 0 40px rgba(232, 185, 35, 0.3)',
+            }}
+          >
+            {displayText}
+          </span>
+        );
+      } else {
+        result.push(<span key={i}>{displayText}</span>);
+      }
+    }
+
+    return result;
+  };
 
   return (
     <span className="inline">
-      {displayedText}
+      {renderSegments()}
       {!isComplete && (
         <span className="animate-pulse ml-0.5 inline-block w-[3px] h-[1.2em] bg-white align-middle" />
       )}
@@ -286,9 +351,9 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
       {/* Continue button - use margin instead of absolute for mobile */}
       <button
         onClick={handleContinue}
-        disabled={!isTypingComplete}
+        disabled={!isTypingComplete || isFadingOut}
         className={`relative z-10 mt-8 sm:mt-12 flex items-center gap-2 text-white/80 text-sm sm:text-base font-medium px-5 sm:px-6 py-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm transition-all duration-500 ${
-          isTypingComplete
+          isTypingComplete && !isFadingOut
             ? 'opacity-100 translate-y-0 hover:bg-white/10 hover:border-white/40 active:bg-white/20 cursor-pointer'
             : 'opacity-0 translate-y-4 cursor-default'
         }`}

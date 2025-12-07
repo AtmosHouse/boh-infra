@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { Header, Navigation, Footer } from './components/Layout';
 import { DishManager, ShoppingList } from './components/Features';
@@ -79,6 +79,7 @@ function MainApp() {
   const [showIntro, setShowIntro] = useState(true);
   const [shouldStartMusic, setShouldStartMusic] = useState(false);
   const [isAppVisible, setIsAppVisible] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -109,6 +110,35 @@ function MainApp() {
     }
   }, [showIntro]);
 
+  // Ensure video keeps playing
+  useEffect(() => {
+    if (!showIntro && videoRef.current) {
+      const video = videoRef.current;
+
+      const handlePause = () => {
+        // If video pauses unexpectedly, try to resume
+        if (video.paused && !video.ended) {
+          video.play().catch(() => {});
+        }
+      };
+
+      const handleError = () => {
+        console.error('Video error:', video.error);
+      };
+
+      video.addEventListener('pause', handlePause);
+      video.addEventListener('error', handleError);
+
+      // Try to play on mount
+      video.play().catch(() => {});
+
+      return () => {
+        video.removeEventListener('pause', handlePause);
+        video.removeEventListener('error', handleError);
+      };
+    }
+  }, [showIntro]);
+
   return (
     <>
       {/* Music player - always mounted, visibility controlled */}
@@ -121,17 +151,22 @@ function MainApp() {
         />
       ) : (
         <div className={`min-h-screen flex flex-col transition-opacity duration-1000 ${isAppVisible ? 'opacity-100' : 'opacity-0'}`}>
+          {/* Fallback background - always visible behind video */}
+          <div className="fixed inset-0 -z-30 bg-gradient-to-b from-[#0a0a0a] via-[#1a0a0a] to-black" />
+
           {/* Video Background */}
-          <div className="fixed inset-0 -z-20 overflow-hidden">
+          <div className="fixed inset-0 -z-20">
             <video
+              ref={videoRef}
               autoPlay
               loop
               muted
               playsInline
-              className="absolute min-w-full min-h-full object-cover"
+              preload="auto"
+              className="w-full h-full object-cover"
               style={{ filter: 'brightness(0.6) saturate(0.8)' }}
             >
-              <source src="https://cdn.pixabay.com/video/2023/12/03/191856-891315505_large.mp4" type="video/mp4" />
+              <source src="/media/background-compressed.mp4" type="video/mp4" />
             </video>
           </div>
 

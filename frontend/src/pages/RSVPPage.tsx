@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calendar, MapPin, UtensilsCrossed, X, UserPlus, Copy, Check } from 'lucide-react';
 import { Snowfall } from '../components/Decorations';
@@ -31,6 +31,10 @@ export function RSVPPage() {
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('userId');
   const { setHideMusicPlayer } = useMusicContext();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // DEBUG: Log on every render
+  console.log('[RSVPPage] RENDER - userId:', userId, 'searchParams:', searchParams.toString());
 
   const [rsvpData, setRsvpData] = useState<RSVPListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,12 +52,122 @@ export function RSVPPage() {
 
   // Fade in on mount and ensure music player is visible
   useEffect(() => {
+    console.log('[RSVPPage] Component MOUNTED');
     requestAnimationFrame(() => {
       setIsVisible(true);
     });
     // Show music player on RSVP page (user arrived here from InvitePage)
     setHideMusicPlayer(false);
+
+    return () => {
+      console.log('[RSVPPage] Component UNMOUNTED');
+    };
   }, [setHideMusicPlayer]);
+
+  // Debug: log all state changes
+  useEffect(() => {
+    console.log('[RSVPPage] State:', { loading, error, userId, isVisible, rsvpData: !!rsvpData });
+  }, [loading, error, userId, isVisible, rsvpData]);
+
+  // Ensure video keeps playing with comprehensive debugging
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let lastTimeUpdate = 0;
+
+    const handlePause = () => {
+      console.log('[Video] Paused - paused:', video.paused, 'ended:', video.ended, 'readyState:', video.readyState);
+      if (video.paused && !video.ended) {
+        video.play().catch((e) => console.log('[Video] Resume failed:', e));
+      }
+    };
+
+    const handleError = () => {
+      console.error('[Video] Error:', video.error);
+    };
+
+    const handleLoadedData = () => {
+      console.log('[Video] Loaded data - duration:', video.duration, 'readyState:', video.readyState);
+    };
+
+    const handleCanPlay = () => {
+      console.log('[Video] Can play - readyState:', video.readyState);
+      video.play().catch((e) => console.log('[Video] Play on canplay failed:', e));
+    };
+
+    const handlePlaying = () => {
+      console.log('[Video] Playing - currentTime:', video.currentTime);
+    };
+
+    const handleTimeUpdate = () => {
+      // Log every 5 seconds to avoid spam
+      if (Math.floor(video.currentTime) % 5 === 0 && Math.floor(video.currentTime) !== lastTimeUpdate) {
+        lastTimeUpdate = Math.floor(video.currentTime);
+        console.log('[Video] Time update:', video.currentTime.toFixed(1), 'paused:', video.paused);
+      }
+    };
+
+    const handleStalled = () => {
+      console.log('[Video] Stalled - readyState:', video.readyState, 'networkState:', video.networkState);
+    };
+
+    const handleWaiting = () => {
+      console.log('[Video] Waiting - readyState:', video.readyState);
+    };
+
+    const handleEnded = () => {
+      console.log('[Video] Ended - should loop but ended');
+    };
+
+    const handleEmptied = () => {
+      console.log('[Video] Emptied - video source was removed or changed');
+    };
+
+    const handleSuspend = () => {
+      console.log('[Video] Suspend - loading suspended');
+    };
+
+    // Handle page visibility changes
+    const handleVisibilityChange = () => {
+      console.log('[Video] Visibility changed - hidden:', document.hidden);
+      if (!document.hidden && video.paused) {
+        video.play().catch((e) => console.log('[Video] Resume on visibility failed:', e));
+      }
+    };
+
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('error', handleError);
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('playing', handlePlaying);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('stalled', handleStalled);
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('ended', handleEnded);
+    video.addEventListener('emptied', handleEmptied);
+    video.addEventListener('suspend', handleSuspend);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Try to play on mount
+    console.log('[Video] Initial state - paused:', video.paused, 'readyState:', video.readyState, 'src:', video.currentSrc);
+    video.play().catch((e) => console.log('[Video] Initial play failed:', e));
+
+    return () => {
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('stalled', handleStalled);
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('emptied', handleEmptied);
+      video.removeEventListener('suspend', handleSuspend);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     // Only fetch if userId is present
@@ -149,36 +263,38 @@ export function RSVPPage() {
   };
 
   return (
-    <div className={`min-h-screen relative overflow-hidden transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Video Background */}
-      <div className="fixed inset-0 -z-20 overflow-hidden">
+    <>
+      {/* Video Background - OUTSIDE main container, using z-0 as base */}
+      <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#0a0a0a] via-[#1a0a0a] to-black" />
+      <div className="fixed inset-0 z-10 border-4">
         <video
+          ref={videoRef}
           autoPlay
           loop
           muted
           playsInline
-          className="absolute min-w-full min-h-full object-cover"
-          style={{ filter: 'brightness(0.6) saturate(0.8)' }}
+          preload="auto"
+          className="w-full h-full object-cover"
         >
-          <source src="https://cdn.pixabay.com/video/2023/12/03/191856-891315505_large.mp4" type="video/mp4" />
+          <source src="/media/background-compressed.mp4" type="video/mp4" />
         </video>
       </div>
-
       {/* Dark overlay */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+      <div className="fixed inset-0 z-20 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
 
       {/* Ambient glow effects */}
-      <div className="fixed inset-0 -z-[9] pointer-events-none"
+      <div className="fixed inset-0 z-30 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(166, 61, 64, 0.2) 0%, transparent 50%)' }} />
-      <div className="fixed inset-0 -z-[9] pointer-events-none"
+      <div className="fixed inset-0 z-30 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(30, 86, 49, 0.2) 0%, transparent 50%)' }} />
-      <div className="fixed inset-0 -z-[9] pointer-events-none"
+      <div className="fixed inset-0 z-30 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at center, rgba(232, 185, 35, 0.08) 0%, transparent 60%)' }} />
 
-      <Snowfall />
+      <div className={`min-h-screen relative z-40 transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <Snowfall />
 
       {/* Main content */}
-      <div className="relative z-20 min-h-screen py-8 px-4 sm:px-8">
+      <div className="relative z-50 min-h-screen py-8 px-4 sm:px-8">
         <div className="max-w-6xl mx-auto">
           {/* Two column layout */}
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
@@ -194,19 +310,13 @@ export function RSVPPage() {
                   )}
                 </div>
 
-                {loading && (
-                  <div className="text-snow/70 text-center py-8 animate-pulse">
-                    Loading guests...
-                  </div>
-                )}
-
                 {error && (
                   <div className="text-cranberry text-center py-8">
                     {error}
                   </div>
                 )}
 
-                {rsvpData && rsvpData.users.length === 0 && (
+                {!loading && rsvpData && rsvpData.users.length === 0 && (
                   <div className="text-snow/50 text-center py-8 italic">
                     No RSVPs yet. Be the first!
                   </div>
@@ -214,32 +324,82 @@ export function RSVPPage() {
 
                 {rsvpData && rsvpData.users.length > 0 && (
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                    {rsvpData.users.map((user: UserPublicResponse, index: number) => (
-                      <div
-                        key={user.id}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-snow/5 border border-snow/10 hover:border-gold/30 transition-all duration-300"
-                        style={{ animationDelay: `${index * 0.05}s` }}
-                      >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cranberry to-holly flex items-center justify-center text-snow font-bold text-sm">
-                          {user.first_name[0]}{user.last_name[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-snow font-medium truncate">
-                            {user.first_name} {user.last_name}
-                            {user.is_plus_one && (
+                    {/* Current user's card first */}
+                    {rsvpData.users
+                      .filter((user: UserPublicResponse) => user.id === parseInt(userId || '0', 10))
+                      .map((user: UserPublicResponse) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-snow/5 border border-gold/40 transition-all duration-300"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cranberry to-holly flex items-center justify-center text-snow font-bold text-sm">
+                            {user.first_name[0]}{user.last_name[0]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-snow font-medium truncate">
+                              {user.first_name} {user.last_name}
                               <span className="ml-2 text-xs text-gold/70 bg-gold/10 px-2 py-0.5 rounded-full">
-                                +1
+                                You
                               </span>
+                            </div>
+                            {user.rsvped_at && (
+                              <div className="text-snow/50 text-xs">
+                                RSVP'd {formatDate(user.rsvped_at)}
+                              </div>
                             )}
                           </div>
-                          {user.rsvped_at && (
-                            <div className="text-snow/50 text-xs">
-                              RSVP'd {formatDate(user.rsvped_at)}
-                            </div>
-                          )}
                         </div>
+                      ))}
+
+                    {/* Loading indicator below current user's card */}
+                    {loading && (
+                      <div className="flex items-center justify-center gap-2 py-4 text-snow/70 animate-pulse">
+                        <div className="w-2 h-2 rounded-full bg-gold/50 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 rounded-full bg-gold/50 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 rounded-full bg-gold/50 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span className="ml-2 text-sm">Loading guests...</span>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Other guests */}
+                    {rsvpData.users
+                      .filter((user: UserPublicResponse) => user.id !== parseInt(userId || '0', 10))
+                      .map((user: UserPublicResponse, index: number) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-snow/5 border border-snow/10 hover:border-gold/30 transition-all duration-300"
+                          style={{ animationDelay: `${index * 0.05}s` }}
+                        >
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cranberry to-holly flex items-center justify-center text-snow font-bold text-sm">
+                            {user.first_name[0]}{user.last_name[0]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-snow font-medium truncate">
+                              {user.first_name} {user.last_name}
+                              {user.is_plus_one && (
+                                <span className="ml-2 text-xs text-gold/70 bg-gold/10 px-2 py-0.5 rounded-full">
+                                  +1
+                                </span>
+                              )}
+                            </div>
+                            {user.rsvped_at && (
+                              <div className="text-snow/50 text-xs">
+                                RSVP'd {formatDate(user.rsvped_at)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                {/* Loading state when no data yet */}
+                {loading && !rsvpData && (
+                  <div className="flex items-center justify-center gap-2 py-8 text-snow/70 animate-pulse">
+                    <div className="w-2 h-2 rounded-full bg-gold/50 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-gold/50 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-gold/50 animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <span className="ml-2 text-sm">Loading guests...</span>
                   </div>
                 )}
 
@@ -503,7 +663,8 @@ export function RSVPPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
