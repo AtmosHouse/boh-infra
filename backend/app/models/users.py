@@ -15,7 +15,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Model for creating a user."""
 
-    original_invitee_id: int | None = None
+    original_invitee_id: str | None = None
 
 
 class UserUpdate(BaseModel):
@@ -30,9 +30,9 @@ class UserResponse(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: str
     has_rsvped: bool
-    original_invitee_id: int | None = None
+    original_invitee_id: str | None = None
     created_at: datetime
     rsvped_at: datetime | None = None
 
@@ -42,7 +42,7 @@ class UserPublicResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: str
     first_name: str
     last_name: str
     has_rsvped: bool

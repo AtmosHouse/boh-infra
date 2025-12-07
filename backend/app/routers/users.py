@@ -81,7 +81,7 @@ async def get_rsvp_list(db: AsyncSession = Depends(get_db)) -> RSVPListResponse:
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
-    user_id: int,
+    user_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
     """Get a user by ID (used for magic link validation)."""
@@ -94,7 +94,7 @@ async def get_user(
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
-    user_id: int,
+    user_id: str,
     user_data: UserUpdate,
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
@@ -116,7 +116,7 @@ async def update_user(
 
 @router.post("/{user_id}/rsvp", response_model=RSVPResponse)
 async def rsvp(
-    user_id: int,
+    user_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> RSVPResponse:
     """RSVP for the event."""
@@ -146,7 +146,7 @@ async def rsvp(
 
 @router.get("/{user_id}/plus-one", response_model=UserResponse | None)
 async def get_plus_one(
-    user_id: int,
+    user_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse | None:
     """Get a user's plus one if they have one."""
@@ -161,7 +161,7 @@ async def get_plus_one(
 
 @router.post("/{user_id}/plus-one", response_model=UserResponse, status_code=201)
 async def add_plus_one(
-    user_id: int,
+    user_id: str,
     plus_one_data: PlusOneCreate,
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
@@ -179,13 +179,11 @@ async def add_plus_one(
     if existing_plus_one.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="You already have a plus one")
 
-    # Create the plus one
+    # Create the plus one (not RSVP'd yet - they must RSVP through their own invite link)
     plus_one = User(
         first_name=plus_one_data.first_name,
         last_name=plus_one_data.last_name,
         original_invitee_id=user_id,
-        has_rsvped=True,
-        rsvped_at=datetime.now(timezone.utc),
     )
     db.add(plus_one)
     await db.commit()
@@ -195,7 +193,7 @@ async def add_plus_one(
 
 @router.delete("/{user_id}", status_code=204)
 async def delete_user(
-    user_id: int,
+    user_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Delete a user."""

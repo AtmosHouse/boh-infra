@@ -64,38 +64,23 @@ function parseTextWithHighlights(text: string): TextSegment[] {
   return segments;
 }
 
-function TypewriterText({ text, onComplete }: {
+function TypewriterText({ text, onComplete, audioRef }: {
   text: string;
   onComplete: () => void;
+  audioRef: React.RefObject<HTMLAudioElement | null>;
 }) {
   const [charIndex, setCharIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Parse segments once
   const segments = parseTextWithHighlights(text);
   // Calculate total length (without the {{ }} markers)
   const totalLength = segments.reduce((acc, seg) => acc + seg.content.length, 0);
 
-  // Initialize audio
   useEffect(() => {
-    audioRef.current = new Audio(TYPEWRITER_CONFIG.soundUrl);
-    audioRef.current.volume = TYPEWRITER_CONFIG.soundVolume;
-    audioRef.current.currentTime = TYPEWRITER_CONFIG.soundStartOffset;
-    audioRef.current.playbackRate = TYPEWRITER_CONFIG.soundPlaybackRate;
-    audioRef.current.loop = true;
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // Start the typewriter sound
+    // Start the typewriter sound (audio is pre-unlocked by parent)
     if (audioRef.current) {
+      audioRef.current.currentTime = TYPEWRITER_CONFIG.soundStartOffset;
       audioRef.current.play().catch(() => {
         // Audio autoplay blocked - that's okay
       });
@@ -178,11 +163,39 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
   const [showTitle, setShowTitle] = useState(false);
   const [titleAnimationStage, setTitleAnimationStage] = useState(0);
 
-  // Unlock audio on mobile by playing/pausing a silent audio on first interaction
+  // Shared audio ref for typewriter sound - created once and unlocked on first tap
+  const typewriterAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Unlock audio on mobile by playing/pausing the actual audio on first interaction
   const unlockAudio = () => {
-    const audio = new Audio();
-    audio.play().catch(() => {});
-    audio.pause();
+    // Create and configure the typewriter audio
+    const audio = new Audio(TYPEWRITER_CONFIG.soundUrl);
+    audio.volume = TYPEWRITER_CONFIG.soundVolume;
+    audio.playbackRate = TYPEWRITER_CONFIG.soundPlaybackRate;
+    audio.loop = true;
+    audio.preload = 'auto';
+    typewriterAudioRef.current = audio;
+
+    // Play and immediately pause to unlock audio on mobile
+    audio.play().then(() => {
+      audio.pause();
+      audio.currentTime = TYPEWRITER_CONFIG.soundStartOffset;
+    }).catch(() => {
+      // If play fails, still keep the audio reference
+    });
+
+    // Also unlock all audio elements on the page (for the music player)
+    // This enables playback of audio that will be triggered later
+    document.querySelectorAll('audio').forEach((audioEl) => {
+      const promise = audioEl.play();
+      if (promise) {
+        promise.then(() => {
+          audioEl.pause();
+        }).catch(() => {
+          // Ignore errors
+        });
+      }
+    });
   };
 
   const handleStart = () => {
@@ -190,12 +203,22 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
     setHasStarted(true);
   };
 
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (typewriterAudioRef.current) {
+        typewriterAudioRef.current.pause();
+        typewriterAudioRef.current = null;
+      }
+    };
+  }, []);
+
   // Dev shortcut: Press Enter to skip intro
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
-        unlockAudio();
         if (!hasStarted) {
+          unlockAudio();
           setHasStarted(true);
         }
         onStartMusic();
@@ -272,7 +295,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
         <div className="relative z-10 text-center px-6">
           <div className="text-4xl sm:text-6xl mb-6 animate-pulse">✨</div>
           <p className="text-white/80 text-lg sm:text-2xl font-display mb-8">
-            {guestName ? `Welcome, ${guestName}` : 'Welcome'}
+            Welcome
           </p>
           <div className="flex items-center justify-center gap-2 text-white/60 text-sm sm:text-base animate-pulse">
             <span>Tap anywhere to begin</span>
@@ -397,6 +420,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
           <TypewriterText
             text={screens[currentScreen].text}
             onComplete={handleTypingComplete}
+            audioRef={typewriterAudioRef}
           />
         </p>
       </div>

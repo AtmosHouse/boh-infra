@@ -308,7 +308,7 @@ export interface UserBase {
 }
 
 export interface UserCreate extends UserBase {
-  original_invitee_id?: number;
+  original_invitee_id?: string;
 }
 
 export interface UserUpdate {
@@ -317,15 +317,15 @@ export interface UserUpdate {
 }
 
 export interface UserResponse extends UserBase {
-  id: number;
+  id: string;
   has_rsvped: boolean;
-  original_invitee_id?: number;
+  original_invitee_id?: string;
   created_at: string;
   rsvped_at?: string;
 }
 
 export interface UserPublicResponse {
-  id: number;
+  id: string;
   first_name: string;
   last_name: string;
   has_rsvped: boolean;

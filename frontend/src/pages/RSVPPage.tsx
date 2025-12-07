@@ -182,7 +182,7 @@ export function RSVPPage() {
         setRsvpData(data);
 
         // Fetch their plus one
-        const plusOneData = await api.getPlusOne(parseInt(userId, 10));
+        const plusOneData = await api.getPlusOne(userId);
         setPlusOne(plusOneData);
       } catch {
         setError('Failed to load guest list');
@@ -228,7 +228,7 @@ export function RSVPPage() {
 
     setPlusOneLoading(true);
     try {
-      const newPlusOne = await api.addPlusOne(parseInt(userId, 10), {
+      const newPlusOne = await api.addPlusOne(userId, {
         first_name: plusOneFirstName.trim(),
         last_name: plusOneLastName.trim(),
       });
@@ -326,7 +326,7 @@ export function RSVPPage() {
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                     {/* Current user's card first */}
                     {rsvpData.users
-                      .filter((user: UserPublicResponse) => user.id === parseInt(userId || '0', 10))
+                      .filter((user: UserPublicResponse) => user.id === userId)
                       .map((user: UserPublicResponse) => (
                         <div
                           key={user.id}
@@ -351,19 +351,9 @@ export function RSVPPage() {
                         </div>
                       ))}
 
-                    {/* Loading indicator below current user's card */}
-                    {loading && (
-                      <div className="flex items-center justify-center gap-2 py-4 text-snow/70 animate-pulse">
-                        <div className="w-2 h-2 rounded-full bg-gold/50 animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 rounded-full bg-gold/50 animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 rounded-full bg-gold/50 animate-bounce" style={{ animationDelay: '300ms' }} />
-                        <span className="ml-2 text-sm">Loading guests...</span>
-                      </div>
-                    )}
-
                     {/* Other guests */}
                     {rsvpData.users
-                      .filter((user: UserPublicResponse) => user.id !== parseInt(userId || '0', 10))
+                      .filter((user: UserPublicResponse) => user.id !== userId)
                       .map((user: UserPublicResponse, index: number) => (
                         <div
                           key={user.id}
@@ -482,12 +472,12 @@ export function RSVPPage() {
 
       {/* Menu Modal */}
       {showMenuModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
             onClick={() => setShowMenuModal(false)}
           />
-          <div className="relative bg-cocoa/95 backdrop-blur-md rounded-2xl border border-gold/30 p-6 sm:p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-warm-lg">
+          <div className="relative bg-cocoa/95 backdrop-blur-md rounded-2xl border border-gold/30 p-6 sm:p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-warm-lg animate-fade-in-up">
             <button
               onClick={() => setShowMenuModal(false)}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-snow/10 text-snow/70 hover:bg-snow/20 hover:text-snow flex items-center justify-center transition-all"

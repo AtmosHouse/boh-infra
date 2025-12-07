@@ -23,7 +23,7 @@ export function InvitePage() {
       }
 
       try {
-        const userData = await api.getUser(parseInt(userId, 10));
+        const userData = await api.getUser(userId);
         setUser(userData);
       } catch {
         setError('This invite link is not valid. Please check your link and try again.');

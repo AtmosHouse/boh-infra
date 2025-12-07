@@ -213,7 +213,7 @@ export const api = {
   },
 
   // User & RSVP endpoints
-  getUser: async (userId: number): Promise<UserResponse> => {
+  getUser: async (userId: string): Promise<UserResponse> => {
     const response = await apiClient.get<UserResponse>(`/users/${userId}`);
     return response.data;
   },
@@ -223,7 +223,7 @@ export const api = {
     return response.data;
   },
 
-  updateUser: async (userId: number, user: UserUpdate): Promise<UserResponse> => {
+  updateUser: async (userId: string, user: UserUpdate): Promise<UserResponse> => {
     const response = await apiClient.put<UserResponse>(`/users/${userId}`, user);
     return response.data;
   },
@@ -238,22 +238,22 @@ export const api = {
     return response.data;
   },
 
-  rsvp: async (userId: number): Promise<RSVPResponse> => {
+  rsvp: async (userId: string): Promise<RSVPResponse> => {
     const response = await apiClient.post<RSVPResponse>(`/users/${userId}/rsvp`);
     return response.data;
   },
 
-  getPlusOne: async (userId: number): Promise<UserResponse | null> => {
+  getPlusOne: async (userId: string): Promise<UserResponse | null> => {
     const response = await apiClient.get<UserResponse | null>(`/users/${userId}/plus-one`);
     return response.data;
   },
 
-  addPlusOne: async (userId: number, plusOne: PlusOneCreate): Promise<UserResponse> => {
+  addPlusOne: async (userId: string, plusOne: PlusOneCreate): Promise<UserResponse> => {
     const response = await apiClient.post<UserResponse>(`/users/${userId}/plus-one`, plusOne);
     return response.data;
   },
 
-  deleteUser: async (userId: number): Promise<void> => {
+  deleteUser: async (userId: string): Promise<void> => {
     await apiClient.delete(`/users/${userId}`);
   },
 };

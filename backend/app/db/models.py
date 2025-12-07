@@ -171,12 +171,14 @@ class User(Base):
 
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(__import__('uuid').uuid4())
+    )
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
     has_rsvped: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    original_invitee_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    original_invitee_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
