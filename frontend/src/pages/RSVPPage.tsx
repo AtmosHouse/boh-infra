@@ -369,8 +369,8 @@ export function RSVPPage() {
         </div>
       )}
 
-      {/* Plus One Modal */}
-      {showPlusOneModal && userId && (
+      {/* Plus One Modal - only show after data is loaded and button is clicked */}
+      {showPlusOneModal && userId && !loading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
