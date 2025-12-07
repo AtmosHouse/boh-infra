@@ -14,10 +14,11 @@ interface CinematicIntroProps {
 // ============================================
 const TYPEWRITER_CONFIG = {
   soundUrl: '/media/typewriter.mp3',
-  soundVolume: 1,            // 0 to 1
+  soundVolume: 1,            // 0 to 1 (base volume)
+  soundGain: 1.2,            // Amplification multiplier (1 = normal, 2 = 2x louder)
   soundStartOffset: 1,       // seconds into the audio to start from
   soundPlaybackRate: 2,      // 0.5 = half speed, 1 = normal, 2 = double speed
-  typingSpeed: 65,          // milliseconds between each character
+  typingSpeed: 75,          // milliseconds between each character
 };
 // ============================================
 
@@ -176,6 +177,18 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
     audio.preload = 'auto';
     typewriterAudioRef.current = audio;
 
+    // Use Web Audio API for amplification beyond 1.0
+    try {
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const source = audioContext.createMediaElementSource(audio);
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = TYPEWRITER_CONFIG.soundGain;
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+    } catch {
+      // If Web Audio API fails, fall back to normal volume
+    }
+
     // Play and immediately pause to unlock audio on mobile
     audio.play().then(() => {
       audio.pause();
@@ -213,7 +226,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
     };
   }, []);
 
-  // Dev shortcut: Press Enter to skip intro
+  // Dev shortcut: Press Enter to skip intro (skips to title screen without starting music)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
@@ -221,7 +234,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
           unlockAudio();
           setHasStarted(true);
         }
-        onStartMusic();
+        // Don't start music here - it starts when user clicks RSVP/Continue button
         setShowTitle(true);
         // Trigger title animation stages
         setTimeout(() => setTitleAnimationStage(1), 100);
@@ -231,7 +244,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onComplete, onStartMusic, hasStarted]);
+  }, [onComplete, hasStarted]);
 
   const handleTypingComplete = useCallback(() => {
     setIsTypingComplete(true);
@@ -239,9 +252,9 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
 
   const handleContinue = () => {
     if (!isTypingComplete) return;
-    
+
     setIsFadingOut(true);
-    
+
     setTimeout(() => {
       if (currentScreen < screens.length - 1) {
         setCurrentScreen(prev => prev + 1);
@@ -251,11 +264,8 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
         // Show title screen
         setShowTitle(true);
         setIsFadingOut(false);
-        // Animate title in stages - start music when title appears
-        setTimeout(() => {
-          setTitleAnimationStage(1);
-          onStartMusic(); // Start music when "Atmosphere" title appears
-        }, 100);
+        // Animate title in stages - music starts when button is clicked, not here
+        setTimeout(() => setTitleAnimationStage(1), 100);
         setTimeout(() => setTitleAnimationStage(2), 600);
         setTimeout(() => setTitleAnimationStage(3), 1200);
       }
@@ -263,10 +273,18 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
   };
 
   const handleFinalContinue = () => {
+    onStartMusic(); // Start music when user clicks the RSVP/Continue button
     setIsFadingOut(true);
     setTimeout(() => {
       onComplete();
     }, 800);
+  };
+
+  const handleRSVPClick = () => {
+    onStartMusic(); // Start music when user clicks the RSVP button
+    if (onRSVP) {
+      onRSVP();
+    }
   };
 
   // "Tap to begin" screen - required for mobile audio unlock
@@ -380,7 +398,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
 
         {/* Continue/RSVP button with glow - use margin-top instead of absolute positioning */}
         <button
-          onClick={showRSVPButton && onRSVP ? onRSVP : handleFinalContinue}
+          onClick={showRSVPButton && onRSVP ? handleRSVPClick : handleFinalContinue}
           className={`relative z-10 mt-8 sm:mt-12 flex items-center gap-2 text-snow/90 text-sm sm:text-lg font-medium px-5 sm:px-8 py-2 sm:py-3 rounded-full border-2 border-gold/40 bg-gradient-to-r from-cranberry/20 to-holly/20 backdrop-blur-sm hover:from-cranberry/30 hover:to-holly/30 hover:border-gold/60 active:from-cranberry/40 active:to-holly/40 hover:scale-105 transition-all duration-500 ${titleAnimationStage >= 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
           style={{ boxShadow: '0 0 30px rgba(232, 185, 35, 0.2), inset 0 0 20px rgba(232, 185, 35, 0.1)' }}
         >

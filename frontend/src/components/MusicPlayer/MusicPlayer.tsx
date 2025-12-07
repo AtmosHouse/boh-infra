@@ -40,12 +40,17 @@ interface MusicPlayerProps {
 }
 
 export function MusicPlayer({ shouldStart = false, hidden = false }: MusicPlayerProps) {
-  const [playlist, setPlaylist] = useState(() => shuffleArray(christmasSongs));
+  // Start with Christmas Song first, then shuffle the rest after it
+  const [playlist, setPlaylist] = useState(() => {
+    // Keep first song (The Christmas Song) at the start, shuffle the rest
+    const [firstSong, ...rest] = christmasSongs;
+    return [firstSong, ...shuffleArray(rest)];
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.3);
   const [isMuted, setIsMuted] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true); // Start expanded
+  const [isExpanded, setIsExpanded] = useState(false); // Start collapsed
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const hasAppliedOffset = useRef(false);
