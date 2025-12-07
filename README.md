@@ -5,10 +5,15 @@ Tools for converting natural language recipe ingredients into structured shoppin
 ## Features
 
 ✅ **LLM-Powered Ingredient Parsing**: Convert recipe text into structured data using AI
+
 ✅ **Multi-Recipe Processing**: Process entire folders of recipes at once
+
 ✅ **Smart Shopping List Generation**: Consolidates ingredients across multiple dishes
+
 ✅ **Robust Data Validation**: Handles missing, invalid, or malformed data gracefully
+
 ✅ **Intelligent Unit Conversion**: Automatically converts and aggregates different units (e.g., "8 oz" + "1 cup" → "2 cups")
+
 ✅ **Ingredient Deduplication**: Combines duplicate ingredients within and across recipes
 
 ## Quick Start
