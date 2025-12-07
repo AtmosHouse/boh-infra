@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CinematicIntro } from '../components/CinematicIntro/CinematicIntro';
-import { MusicPlayer } from '../components/MusicPlayer/MusicPlayer';
+import { useMusicContext } from '../App';
 import api from '../services/api';
 import type { UserResponse } from '../types/api';
 
 export function InvitePage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const { startMusic } = useMusicContext();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [shouldStartMusic, setShouldStartMusic] = useState(false);
-  const [rsvpLoading, setRsvpLoading] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -35,59 +35,90 @@ export function InvitePage() {
     fetchUser();
   }, [userId]);
 
-  const handleRSVP = async () => {
+  const navigateToRSVP = () => {
+    setIsFadingOut(true);
+    setTimeout(() => {
+      navigate(`/xmas/rsvp?userId=${user?.id}`);
+    }, 500);
+  };
+
+  const handleRSVP = () => {
     if (!user) return;
 
-    setRsvpLoading(true);
-    try {
-      await api.rsvp(user.id);
-      // Navigate directly to RSVP page after successful RSVP
-      navigate(`/rsvp?userId=${user.id}`);
-    } catch {
-      setError('Failed to RSVP. Please try again.');
-      setRsvpLoading(false);
-    }
+    // Fire and forget - don't await, navigate immediately
+    api.rsvp(user.id).catch(() => {
+      // Silently fail - user is already on RSVP page
+    });
+
+    navigateToRSVP();
   };
 
   const handleStartMusic = () => {
-    setShouldStartMusic(true);
+    startMusic();
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#1a0a0a] to-black flex items-center justify-center">
-        <div className="text-snow text-xl animate-pulse">Loading your invitation...</div>
+      <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
+        {/* Subtle starfield */}
+        <div className="absolute inset-0 overflow-hidden opacity-30">
+          {Array.from({ length: 50 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-px h-px bg-white rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                opacity: Math.random() * 0.5 + 0.2,
+              }}
+            />
+          ))}
+        </div>
+        <div className="relative z-10 text-snow text-xl sm:text-2xl font-display animate-pulse">
+          Loading your invitation...
+        </div>
       </div>
     );
   }
 
   if (error || !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#1a0a0a] to-black flex flex-col items-center justify-center p-8">
-        <h1 className="text-snow text-2xl font-display mb-4">Oops!</h1>
-        <p className="text-snow/70 text-center max-w-md">
-          {error || 'Something went wrong. Please try again.'}
-        </p>
+      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-8">
+        {/* Subtle starfield */}
+        <div className="absolute inset-0 overflow-hidden opacity-30">
+          {Array.from({ length: 50 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-px h-px bg-white rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                opacity: Math.random() * 0.5 + 0.2,
+              }}
+            />
+          ))}
+        </div>
+        <div className="relative z-10 text-center">
+          <h1 className="text-snow text-2xl font-display mb-4">Oops!</h1>
+          <p className="text-snow/70 text-center max-w-md">
+            {error || 'Something went wrong. Please try again.'}
+          </p>
+        </div>
       </div>
     );
   }
 
   // Show cinematic intro - after RSVP, user will be navigated to RSVP page
   return (
-    <>
+    <div className={`transition-opacity duration-500 ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}>
       <CinematicIntro
-        onComplete={() => {
-          // If intro completes without RSVP, navigate to RSVP page anyway
-          navigate(`/rsvp?userId=${user.id}`);
-        }}
+        onComplete={navigateToRSVP}
         onStartMusic={handleStartMusic}
         guestName={user.first_name}
-        showRSVPButton={!user.has_rsvped}
-        onRSVP={rsvpLoading ? undefined : handleRSVP}
+        showRSVPButton={true}
+        onRSVP={handleRSVP}
       />
-      {/* Hide music player during intro */}
-      <MusicPlayer shouldStart={shouldStartMusic} hidden={true} />
-    </>
+    </div>
   );
 }
 

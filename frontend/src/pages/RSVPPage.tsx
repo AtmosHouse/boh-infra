@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calendar, MapPin, UtensilsCrossed, X, UserPlus, Copy, Check } from 'lucide-react';
-import { MusicPlayer } from '../components/MusicPlayer/MusicPlayer';
 import { Snowfall } from '../components/Decorations';
 import api from '../services/api';
 import type { RSVPListResponse, UserPublicResponse, UserResponse } from '../types/api';
@@ -35,6 +34,7 @@ export function RSVPPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showMenuModal, setShowMenuModal] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   // Plus one state
   const [showPlusOneModal, setShowPlusOneModal] = useState(false);
@@ -44,17 +44,28 @@ export function RSVPPage() {
   const [plusOneLoading, setPlusOneLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Fade in on mount
   useEffect(() => {
+    requestAnimationFrame(() => {
+      setIsVisible(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    // Only fetch if userId is present
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchRSVPList = async () => {
       try {
         const data = await api.getRSVPList();
         setRsvpData(data);
 
-        // If userId is present, fetch their plus one
-        if (userId) {
-          const plusOneData = await api.getPlusOne(parseInt(userId, 10));
-          setPlusOne(plusOneData);
-        }
+        // Fetch their plus one
+        const plusOneData = await api.getPlusOne(parseInt(userId, 10));
+        setPlusOne(plusOneData);
       } catch {
         setError('Failed to load guest list');
       } finally {
@@ -64,6 +75,35 @@ export function RSVPPage() {
 
     fetchRSVPList();
   }, [userId]);
+
+  // Show access denied if no userId
+  if (!userId) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-8">
+        {/* Subtle starfield */}
+        <div className="absolute inset-0 overflow-hidden opacity-30">
+          {Array.from({ length: 50 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-px h-px bg-white rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                opacity: Math.random() * 0.5 + 0.2,
+              }}
+            />
+          ))}
+        </div>
+        <div className="relative z-10 text-center">
+          <div className="text-6xl mb-6">🎄</div>
+          <h1 className="text-snow text-2xl sm:text-3xl font-display mb-4">Invitation Required</h1>
+          <p className="text-snow/70 text-center max-w-md">
+            This event is invite-only. Please use your personal invite link to access this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleAddPlusOne = async () => {
     if (!userId || !plusOneFirstName.trim() || !plusOneLastName.trim()) return;
@@ -89,7 +129,7 @@ export function RSVPPage() {
 
   const getPlusOneLink = () => {
     if (!plusOne) return '';
-    return `${window.location.origin}/invite/${plusOne.id}`;
+    return `${window.location.origin}/xmas/invite/${plusOne.id}`;
   };
 
   const copyPlusOneLink = () => {
@@ -105,7 +145,7 @@ export function RSVPPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className={`min-h-screen relative overflow-hidden transition-opacity duration-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Video Background */}
       <div className="fixed inset-0 -z-20 overflow-hidden">
         <video
@@ -459,9 +499,6 @@ export function RSVPPage() {
           </div>
         </div>
       )}
-
-      {/* Music player */}
-      <MusicPlayer shouldStart={true} />
     </div>
   );
 }

@@ -146,9 +146,11 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
         // Show title screen
         setShowTitle(true);
         setIsFadingOut(false);
-        onStartMusic();
-        // Animate title in stages
-        setTimeout(() => setTitleAnimationStage(1), 100);
+        // Animate title in stages - start music when title appears
+        setTimeout(() => {
+          setTitleAnimationStage(1);
+          onStartMusic(); // Start music when "Atmosphere" title appears
+        }, 100);
         setTimeout(() => setTitleAnimationStage(2), 600);
         setTimeout(() => setTitleAnimationStage(3), 1200);
       }
@@ -218,7 +220,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
           </h1>
           <h2 className={`text-xl sm:text-3xl md:text-5xl font-display text-snow mt-2 transition-all duration-1500 delay-500 ${titleAnimationStage >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
             style={{ textShadow: '0 0 20px rgba(255, 255, 255, 0.4), 0 0 40px rgba(255, 255, 255, 0.2)' }}>
-            Holiday Feast Planner
+            {showRSVPButton ? 'Holiday Feast' : 'Holiday Feast Planner'}
           </h2>
 
           {/* Decorative line with glow */}
