@@ -9,7 +9,8 @@ from alembic import context
 # Import our models and config
 from app.core.config import settings
 from app.db.base import Base
-from app.db import models  # noqa: F401 - Import models to register them with Base
+# Import models directly to avoid triggering async engine creation from app.db.__init__
+import app.db.models  # noqa: F401 - Import models to register them with Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
