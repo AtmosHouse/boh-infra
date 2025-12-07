@@ -48,14 +48,17 @@ export function MusicPlayer({ shouldStart = false, hidden = false }: MusicPlayer
   const [isExpanded, setIsExpanded] = useState(true); // Start expanded
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const hasAppliedOffset = useRef(false);
 
   const currentSong = playlist[currentIndex];
 
   const playNext = useCallback(() => {
+    hasAppliedOffset.current = false; // Reset offset flag for new song
     setCurrentIndex((prev) => (prev + 1) % playlist.length);
   }, [playlist.length]);
 
   const playPrev = () => {
+    hasAppliedOffset.current = false; // Reset offset flag for new song
     setCurrentIndex((prev) => (prev - 1 + playlist.length) % playlist.length);
   };
 
@@ -86,6 +89,7 @@ export function MusicPlayer({ shouldStart = false, hidden = false }: MusicPlayer
   };
 
   const reshuffle = () => {
+    hasAppliedOffset.current = false;
     setPlaylist(shuffleArray(christmasSongs));
     setCurrentIndex(0);
   };
@@ -100,34 +104,60 @@ export function MusicPlayer({ shouldStart = false, hidden = false }: MusicPlayer
   useEffect(() => {
     if (!shouldStart || hasAutoStarted || !audioRef.current) return;
 
-    // Set the start offset if defined
-    if (currentSong.startOffset) {
-      audioRef.current.currentTime = currentSong.startOffset;
-    }
+    const audio = audioRef.current;
 
-    audioRef.current.play()
-      .then(() => {
-        setIsPlaying(true);
-        setHasAutoStarted(true);
-      })
-      .catch(() => {
-        // Autoplay blocked - should not happen since user clicked continue
-        console.log('Autoplay blocked');
-      });
+    // Wait for audio to be ready, then apply offset and play
+    const startPlayback = () => {
+      if (currentSong.startOffset && !hasAppliedOffset.current) {
+        audio.currentTime = currentSong.startOffset;
+        hasAppliedOffset.current = true;
+      }
+
+      audio.play()
+        .then(() => {
+          setIsPlaying(true);
+          setHasAutoStarted(true);
+        })
+        .catch(() => {
+          // Autoplay blocked on mobile - still mark as started so player shows
+          console.log('Autoplay blocked');
+          setHasAutoStarted(true);
+        });
+    };
+
+    if (audio.readyState >= 3) {
+      // Audio is already ready
+      startPlayback();
+    } else {
+      // Wait for audio to be ready
+      audio.addEventListener('canplay', startPlayback, { once: true });
+      return () => audio.removeEventListener('canplay', startPlayback);
+    }
   }, [shouldStart, hasAutoStarted, currentSong.startOffset]);
 
-  // Handle song changes - apply offset and play
+  // Handle song changes - wait for new song to load before playing
   useEffect(() => {
-    if (audioRef.current && isPlaying) {
-      // Set the start offset for this song
-      if (currentSong.startOffset) {
-        audioRef.current.currentTime = currentSong.startOffset;
+    if (!audioRef.current || !isPlaying) return;
+
+    const audio = audioRef.current;
+
+    const playWhenReady = () => {
+      if (currentSong.startOffset && !hasAppliedOffset.current) {
+        audio.currentTime = currentSong.startOffset;
+        hasAppliedOffset.current = true;
       }
-      audioRef.current.play().catch(() => setIsPlaying(false));
+      audio.play().catch(() => setIsPlaying(false));
+    };
+
+    if (audio.readyState >= 3) {
+      playWhenReady();
+    } else {
+      audio.addEventListener('canplay', playWhenReady, { once: true });
+      return () => audio.removeEventListener('canplay', playWhenReady);
     }
   }, [currentIndex, isPlaying, currentSong.startOffset]);
 
-  // Only show the player after music has auto-started (or if no autostart needed and not hidden)
+  // Show the player when not hidden and either autostart completed or no autostart needed
   const shouldShow = !hidden && (hasAutoStarted || !shouldStart);
 
   return (

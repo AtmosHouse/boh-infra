@@ -12,11 +12,15 @@ import { RSVPPage } from './pages/RSVPPage';
 interface MusicContextType {
   shouldStartMusic: boolean;
   startMusic: () => void;
+  hideMusicPlayer: boolean;
+  setHideMusicPlayer: (hide: boolean) => void;
 }
 
 const MusicContext = createContext<MusicContextType>({
   shouldStartMusic: false,
   startMusic: () => {},
+  hideMusicPlayer: false,
+  setHideMusicPlayer: () => {},
 });
 
 export const useMusicContext = () => useContext(MusicContext);
@@ -24,16 +28,17 @@ export const useMusicContext = () => useContext(MusicContext);
 // Wrapper for xmas routes that provides persistent music player
 function XmasLayout() {
   const [shouldStartMusic, setShouldStartMusic] = useState(false);
+  const [hideMusicPlayer, setHideMusicPlayer] = useState(true); // Hidden by default during intro
 
   const startMusic = () => {
     setShouldStartMusic(true);
   };
 
   return (
-    <MusicContext.Provider value={{ shouldStartMusic, startMusic }}>
+    <MusicContext.Provider value={{ shouldStartMusic, startMusic, hideMusicPlayer, setHideMusicPlayer }}>
       <Outlet />
       {/* Persistent music player for all xmas routes */}
-      <MusicPlayer shouldStart={shouldStartMusic} />
+      <MusicPlayer shouldStart={shouldStartMusic} hidden={hideMusicPlayer} />
     </MusicContext.Provider>
   );
 }

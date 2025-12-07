@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calendar, MapPin, UtensilsCrossed, X, UserPlus, Copy, Check } from 'lucide-react';
 import { Snowfall } from '../components/Decorations';
+import { useMusicContext } from '../App';
 import api from '../services/api';
 import type { RSVPListResponse, UserPublicResponse, UserResponse } from '../types/api';
 
@@ -29,6 +30,7 @@ const MENU_ITEMS = {
 export function RSVPPage() {
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('userId');
+  const { setHideMusicPlayer } = useMusicContext();
 
   const [rsvpData, setRsvpData] = useState<RSVPListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,12 +46,14 @@ export function RSVPPage() {
   const [plusOneLoading, setPlusOneLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Fade in on mount
+  // Fade in on mount and ensure music player is visible
   useEffect(() => {
     requestAnimationFrame(() => {
       setIsVisible(true);
     });
-  }, []);
+    // Show music player on RSVP page (user arrived here from InvitePage)
+    setHideMusicPlayer(false);
+  }, [setHideMusicPlayer]);
 
   useEffect(() => {
     // Only fetch if userId is present

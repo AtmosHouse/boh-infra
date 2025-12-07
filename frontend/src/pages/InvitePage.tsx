@@ -8,7 +8,7 @@ import type { UserResponse } from '../types/api';
 export function InvitePage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { startMusic } = useMusicContext();
+  const { startMusic, setHideMusicPlayer } = useMusicContext();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +55,8 @@ export function InvitePage() {
 
   const handleStartMusic = () => {
     startMusic();
+    // Show the music player now that music is starting
+    setHideMusicPlayer(false);
   };
 
   if (loading) {
