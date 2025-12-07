@@ -15,12 +15,16 @@ export function Snowfall() {
   const [snowflakes, setSnowflakes] = useState<SnowflakeData[]>([]);
 
   useEffect(() => {
-    const flakes: SnowflakeData[] = Array.from({ length: 250 }, (_, i) => ({
+    // Use fewer snowflakes on mobile for better performance
+    const isMobile = window.innerWidth < 640;
+    const flakeCount = isMobile ? 80 : 250;
+
+    const flakes: SnowflakeData[] = Array.from({ length: flakeCount }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
       animationDuration: 10 + Math.random() * 30,
       animationDelay: Math.random() * 10,
-      size: 4 + Math.random() * 8,
+      size: isMobile ? 3 + Math.random() * 5 : 4 + Math.random() * 8,
       opacity: 0.3 + Math.random() * 0.5,
       driftLeft: i % 2 === 1,
     }));

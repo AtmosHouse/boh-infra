@@ -171,16 +171,33 @@ function TypewriterText({ text, onComplete }: {
 
 export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPButton, onRSVP }: CinematicIntroProps) {
   const screens = getScreens(guestName);
+  const [hasStarted, setHasStarted] = useState(false);
   const [currentScreen, setCurrentScreen] = useState(0);
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [showTitle, setShowTitle] = useState(false);
   const [titleAnimationStage, setTitleAnimationStage] = useState(0);
 
+  // Unlock audio on mobile by playing/pausing a silent audio on first interaction
+  const unlockAudio = () => {
+    const audio = new Audio();
+    audio.play().catch(() => {});
+    audio.pause();
+  };
+
+  const handleStart = () => {
+    unlockAudio();
+    setHasStarted(true);
+  };
+
   // Dev shortcut: Press Enter to skip intro
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
+        unlockAudio();
+        if (!hasStarted) {
+          setHasStarted(true);
+        }
         onStartMusic();
         setShowTitle(true);
         // Trigger title animation stages
@@ -191,7 +208,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onComplete, onStartMusic]);
+  }, [onComplete, onStartMusic, hasStarted]);
 
   const handleTypingComplete = useCallback(() => {
     setIsTypingComplete(true);
@@ -228,6 +245,42 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
       onComplete();
     }, 800);
   };
+
+  // "Tap to begin" screen - required for mobile audio unlock
+  if (!hasStarted) {
+    return (
+      <div
+        className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center cursor-pointer"
+        style={{ minHeight: '100dvh' }}
+        onClick={handleStart}
+      >
+        {/* Subtle starfield */}
+        <div className="absolute inset-0 overflow-hidden opacity-30">
+          {Array.from({ length: 50 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-[1px] h-[1px] bg-white rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                opacity: Math.random() * 0.5 + 0.2,
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="relative z-10 text-center px-6">
+          <div className="text-4xl sm:text-6xl mb-6 animate-pulse">✨</div>
+          <p className="text-white/80 text-lg sm:text-2xl font-display mb-8">
+            {guestName ? `Welcome, ${guestName}` : 'Welcome'}
+          </p>
+          <div className="flex items-center justify-center gap-2 text-white/60 text-sm sm:text-base animate-pulse">
+            <span>Tap anywhere to begin</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (showTitle) {
     return (
