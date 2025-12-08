@@ -18,7 +18,7 @@ const TYPEWRITER_CONFIG = {
   soundGain: 1.2,            // Amplification multiplier (1 = normal, 2 = 2x louder)
   soundStartOffset: 1,       // seconds into the audio to start from
   soundPlaybackRate: 2,      // 0.5 = half speed, 1 = normal, 2 = double speed
-  typingSpeed: 75,          // milliseconds between each character
+  typingSpeed: 75,           // milliseconds between each character
 };
 // ============================================
 
@@ -110,7 +110,7 @@ function TypewriterText({ text, onComplete, audioRef }: {
         audioRef.current.pause();
       }
     };
-  }, [totalLength, onComplete]);
+  }, [totalLength, onComplete, audioRef]);
 
   // Render segments up to current character index
   const renderSegments = () => {
@@ -124,12 +124,13 @@ function TypewriterText({ text, onComplete, audioRef }: {
       const charsToShow = Math.min(charsRemaining, segment.content.length);
       const displayText = segment.content.slice(0, charsToShow);
       charsRemaining -= charsToShow;
-
+//  filter: brightness(10);
+ // backdrop-filter: brightness(1);
       if (segment.type === 'highlight') {
         result.push(
           <span
             key={i}
-            className="text-gold font-semibold"
+            className="text-gold font-semibold ultra-white"
             style={{
               textShadow: '0 0 20px rgba(232, 185, 35, 0.6), 0 0 40px rgba(232, 185, 35, 0.3)',
             }}
@@ -155,6 +156,65 @@ function TypewriterText({ text, onComplete, audioRef }: {
   );
 }
 
+function Snow() {
+  const flakesRef = useRef<
+    {
+      left: string;
+      opacity: number;
+      duration: number;
+      delay: number;
+      size: number;
+    }[]
+  >([]);
+
+  if (flakesRef.current.length === 0) {
+    flakesRef.current = Array.from({ length: 120 }).map(() => ({
+      left: `${Math.random() * 100}%`,
+      opacity: Math.random() * 0.6 + 0.4,
+      duration: 10 + Math.random() * 10,
+      delay: Math.random() * 10,
+      size: Math.random() * 3 + 2,
+    }));
+  }
+
+  return (
+    <>
+      <style>{`
+        @keyframes snow-fall {
+          0% {
+            transform: translate3d(0, -10vh, 0);
+          }
+          100% {
+            transform: translate3d(0, 110vh, 0);
+          }
+        }
+      `}</style>
+      <div
+        id="whiter"
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+      >
+        {flakesRef.current.map((flake, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              top: '-10%',
+              left: flake.left,
+              width: `${flake.size}px`,
+              height: `${flake.size}px`,
+              borderRadius: '9999px',
+              background: 'white',
+              opacity: flake.opacity,
+              animation: `snow-fall ${flake.duration}s linear infinite`,
+              animationDelay: `${flake.delay}s`,
+            }}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
 export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPButton, onRSVP }: CinematicIntroProps) {
   const screens = getScreens(guestName);
   const [hasStarted, setHasStarted] = useState(false);
@@ -166,6 +226,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
 
   // Shared audio ref for typewriter sound - created once and unlocked on first tap
   const typewriterAudioRef = useRef<HTMLAudioElement | null>(null);
+  const hdrVideoRef = useRef<HTMLVideoElement | null>(null);
 
   // Unlock audio on mobile by playing/pausing the actual audio on first interaction
   const unlockAudio = () => {
@@ -200,10 +261,10 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
     // Also unlock all audio elements on the page (for the music player)
     // This enables playback of audio that will be triggered later
     document.querySelectorAll('audio').forEach((audioEl) => {
-      const promise = audioEl.play();
+      const promise = (audioEl as HTMLAudioElement).play();
       if (promise) {
         promise.then(() => {
-          audioEl.pause();
+          (audioEl as HTMLAudioElement).pause();
         }).catch(() => {
           // Ignore errors
         });
@@ -213,6 +274,9 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
 
   const handleStart = () => {
     unlockAudio();
+    if (hdrVideoRef.current) {
+      hdrVideoRef.current.play().catch(() => {});
+    }
     setHasStarted(true);
   };
 
@@ -223,6 +287,10 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
         typewriterAudioRef.current.pause();
         typewriterAudioRef.current = null;
       }
+      if (hdrVideoRef.current) {
+        hdrVideoRef.current.pause();
+        hdrVideoRef.current = null;
+      }
     };
   }, []);
 
@@ -232,6 +300,9 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
       if (e.key === 'Enter') {
         if (!hasStarted) {
           unlockAudio();
+          if (hdrVideoRef.current) {
+            hdrVideoRef.current.play().catch(() => {});
+          }
           setHasStarted(true);
         }
         // Don't start music here - it starts when user clicks RSVP/Continue button
@@ -296,23 +367,10 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
         onClick={handleStart}
       >
         {/* Subtle starfield */}
-        <div className="absolute inset-0 overflow-hidden opacity-30">
-          {Array.from({ length: 50 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-[1px] h-[1px] bg-white rounded-full"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                opacity: Math.random() * 0.5 + 0.2,
-              }}
-            />
-          ))}
-        </div>
 
-        <div className="relative z-10 text-center px-6">
+        <div className="relative z-10 text-center px-6 whiter">
           <div className="text-4xl sm:text-6xl mb-6 animate-pulse">✨</div>
-          <p className="text-white/80 text-lg sm:text-2xl font-display mb-8">
+          <p id="whiter" className="text-white/80 text-lg sm:text-2xl font-display mb-8 whiter">
             Welcome
           </p>
           <div className="flex items-center justify-center gap-2 text-white/60 text-sm sm:text-base animate-pulse">
@@ -330,20 +388,6 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
         style={{ minHeight: '100dvh' }}
       >
         {/* Starfield background */}
-        <div className="absolute inset-0 overflow-hidden">
-          {Array.from({ length: 100 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-[2px] h-[2px] bg-white rounded-full animate-twinkle"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                opacity: Math.random() * 0.7 + 0.3,
-              }}
-            />
-          ))}
-        </div>
 
         {/* Multiple glowing layers for depth */}
         <div
@@ -417,45 +461,52 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
       className={`fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center transition-opacity duration-500 ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}
       style={{ minHeight: '100dvh' }}
     >
-      {/* Subtle starfield */}
-      <div className="absolute inset-0 overflow-hidden opacity-30">
-        {Array.from({ length: 50 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-[1px] h-[1px] bg-white rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.5 + 0.2,
-            }}
-          />
-        ))}
-      </div>
+      {/* Basically you can force iOS / OSX post Liquid glass to render the page using EDR if you physically get it onto screen somehow. */}
+      {/* In the past you could do this as a 0x0, but we need to trigger at least a 1x1 video to trigger once we have user input to enable */}
+      {/* autoplay */}
+      <video
+        ref={hdrVideoRef}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="fixed bottom-4 right-4 w-1 h-1 rounded-md"
+        src="/media/white2.mp4"
+      />
 
-      {/* Text container */}
-      <div className="relative z-10 max-w-lg sm:max-w-3xl mx-auto px-6 sm:px-8 text-center">
-        <p className="text-white text-base sm:text-2xl md:text-4xl font-display leading-relaxed tracking-wide">
-          <TypewriterText
-            text={screens[currentScreen].text}
-            onComplete={handleTypingComplete}
-            audioRef={typewriterAudioRef}
-          />
-        </p>
-      </div>
+      {/* Optional subtle starfield over the black background */}
 
-      {/* Continue button - use margin instead of absolute for mobile */}
-      <button
-        onClick={handleContinue}
-        disabled={!isTypingComplete || isFadingOut}
-        className={`relative z-10 mt-8 sm:mt-12 flex items-center gap-2 text-white/80 text-sm sm:text-base font-medium px-5 sm:px-6 py-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm transition-all duration-500 ${
-          isTypingComplete && !isFadingOut
-            ? 'opacity-100 translate-y-0 hover:bg-white/10 hover:border-white/40 active:bg-white/20 cursor-pointer'
-            : 'opacity-0 translate-y-4 cursor-default'
-        }`}
-      >
-        Continue <ChevronRight size={16} className="sm:w-[18px] sm:h-[18px]" />
-      </button>
+      <div className="relative w-full h-full max-w-5xl mx-auto flex flex-col items-center justify-center px-6 sm:px-8">
+        <Snow />
+
+        {/* Text container */}
+        <div className="relative z-10 max-w-lg sm:max-w-3xl mx-auto text-center">
+          <p
+            id="whiter"
+            className="text-white text-base sm:text-2xl md:text-4xl font-display leading-relaxed tracking-wide whiter"
+          >
+            <TypewriterText
+              text={screens[currentScreen].text}
+              onComplete={handleTypingComplete}
+              audioRef={typewriterAudioRef}
+            />
+          </p>
+        </div>
+
+        {/* Continue button - use margin instead of absolute for mobile */}
+        <button
+          id="whiter"
+          onClick={handleContinue}
+          disabled={!isTypingComplete || isFadingOut}
+          className={`relative z-10 mt-8 sm:mt-12 flex items-center gap-2 text-white/80 text-sm sm:text-base font-medium px-5 sm:px-6 py-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm transition-all duration-500 ${
+            isTypingComplete && !isFadingOut
+              ? 'opacity-100 translate-y-0 hover:bg-white/10 hover:border-white/40 active:bg-white/20 cursor-pointer'
+              : 'opacity-0 translate-y-4 cursor-default'
+          }`}
+        >
+          Continue <ChevronRight size={16} className="sm:w-[18px] sm:h-[18px]" />
+        </button>
+      </div>
     </div>
   );
 }
-
