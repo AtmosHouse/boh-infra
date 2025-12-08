@@ -33,7 +33,7 @@ import type {
   UserUpdate,
 } from '../types/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://10.0.4.43:10000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const apiClient = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,
