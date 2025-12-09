@@ -17,11 +17,18 @@ const christmasSongs: Song[] = [
     startOffset: 7, // Start from 6 seconds in
   },
   {
+    title: 'Its the Most Wonderful Time of the Year',
+    artist: 'Andy Williams',
+    url: '/media/wonderful.mp3',
+    startOffset: 0, 
+  },
+  {
     title: 'The Christmas Waltz',
     artist: 'Laufey',
     url: '/media/xmas_waltz.mp3',
     startOffset: 0, // Start from 10 seconds in
-  }
+  },
+  
 
 ];
 

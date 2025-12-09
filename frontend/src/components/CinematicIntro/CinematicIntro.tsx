@@ -79,12 +79,28 @@ function TypewriterText({ text, onComplete, audioRef }: {
   const totalLength = segments.reduce((acc, seg) => acc + seg.content.length, 0);
 
   useEffect(() => {
-    // Start the typewriter sound (audio is pre-unlocked by parent)
-    if (audioRef.current) {
-      audioRef.current.currentTime = TYPEWRITER_CONFIG.soundStartOffset;
-      audioRef.current.play().catch(() => {
-        // Audio autoplay blocked - that's okay
-      });
+    // Try to start the typewriter sound
+    const tryPlayAudio = () => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = TYPEWRITER_CONFIG.soundStartOffset;
+        audioRef.current.play().catch(() => {
+          // Audio autoplay blocked - that's okay, typing will still work
+        });
+      }
+    };
+
+    // If audio ref exists and is ready, play immediately
+    // Otherwise, try after a short delay to give time for audio to load
+    let delayTimer: ReturnType<typeof setTimeout> | null = null;
+    if (audioRef.current && audioRef.current.readyState >= 2) {
+      tryPlayAudio();
+    } else {
+      // Small delay to allow audio to be created and unlocked
+      delayTimer = setTimeout(tryPlayAudio, 50);
+      // Also listen for when audio becomes ready
+      if (audioRef.current) {
+        audioRef.current.addEventListener('canplay', tryPlayAudio, { once: true });
+      }
     }
 
     let index = 0;
@@ -106,6 +122,7 @@ function TypewriterText({ text, onComplete, audioRef }: {
 
     return () => {
       clearInterval(timer);
+      if (delayTimer) clearTimeout(delayTimer);
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -130,9 +147,9 @@ function TypewriterText({ text, onComplete, audioRef }: {
         result.push(
           <span
             key={i}
-            className="text-gold font-semibold ultra-white"
+            className="text-gold font-bold"
             style={{
-              textShadow: '0 0 20px rgba(232, 185, 35, 0.6), 0 0 40px rgba(232, 185, 35, 0.3)',
+              textShadow: '0 0 2px rgba(232, 185, 35, 0.9), 0 0 40px rgba(232, 185, 35, 0.25)',
             }}
           >
             {displayText}
@@ -191,7 +208,7 @@ function Snow() {
       `}</style>
       <div
         id="whiter"
-        className="pointer-events-none absolute inset-0 overflow-hidden"
+        className="pointer-events-none fixed inset-0 overflow-hidden z-0"
       >
         {flakesRef.current.map((flake, i) => (
           <div
@@ -223,10 +240,19 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [showTitle, setShowTitle] = useState(false);
   const [titleAnimationStage, setTitleAnimationStage] = useState(0);
+  const hasMusicStarted = useRef(false);
 
   // Shared audio ref for typewriter sound - created once and unlocked on first tap
   const typewriterAudioRef = useRef<HTMLAudioElement | null>(null);
   const hdrVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Start music when title screen appears (only once)
+  useEffect(() => {
+    if (showTitle && !hasMusicStarted.current) {
+      hasMusicStarted.current = true;
+      onStartMusic();
+    }
+  }, [showTitle, onStartMusic]);
 
   // Unlock audio on mobile by playing/pausing the actual audio on first interaction
   const unlockAudio = () => {
@@ -344,7 +370,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
   };
 
   const handleFinalContinue = () => {
-    onStartMusic(); // Start music when user clicks the RSVP/Continue button
+    // Music already started when title screen appeared
     setIsFadingOut(true);
     setTimeout(() => {
       onComplete();
@@ -352,7 +378,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
   };
 
   const handleRSVPClick = () => {
-    onStartMusic(); // Start music when user clicks the RSVP button
+    // Music already started when title screen appeared
     if (onRSVP) {
       onRSVP();
     }

@@ -8,24 +8,35 @@ import type { RSVPListResponse, UserPublicResponse, UserResponse } from '../type
 
 // Hardcoded menu items - fill in manually
 const MENU_ITEMS = {
-  appetizers: [
-    { name: 'Baked Brie with Honey & Walnuts', description: 'Warm brie topped with local honey and candied walnuts' },
-    { name: 'Stuffed Mushrooms', description: 'Cremini mushrooms with herbed cream cheese' },
+  firstCourse: [
+    { name: 'Miso-Mushroom Sausage Rolls', description: 'Savory mushroom and miso sausage wrapped in flaky pastry' },
+    { name: 'Hibiscus Beef Tartare', description: 'Hand-chopped beef with hibiscus, herbs, and crisp garnish' },
+    { name: 'Prosciutto Wrapped Baked Brie Rolls', description: 'Warm brie wrapped in prosciutto and pastry' },
+    { name: 'Fig & Goat Cheese Puff Pastry Roll', description: 'Caramelized figs and tangy goat cheese in golden puff pastry' },
+  ],
+  soup: [
+    { name: 'Butternut Squash Soup', description: 'Silky roasted butternut squash with aromatic spices' },
   ],
   mains: [
-    { name: 'Herb-Crusted Prime Rib', description: 'Slow-roasted with au jus and horseradish cream' },
-    { name: 'Honey Glazed Ham', description: 'Brown sugar and clove glaze' },
+    { name: 'Deux Wellington (Beef and Mushroom)', description: 'Classic beef Wellington alongside a mushroom duxelles Wellington' },
+    { name: 'Roast Duck', description: 'Crispy-skinned roast duck with rich pan jus' },
   ],
   sides: [
-    { name: 'Garlic Mashed Potatoes', description: 'Creamy yukon golds with roasted garlic' },
-    { name: 'Roasted Brussels Sprouts', description: 'With bacon and balsamic reduction' },
-    { name: 'Green Bean Casserole', description: 'Classic with crispy onion topping' },
+    { name: 'Mashed Potatoes', description: 'Creamy, buttery mashed potatoes' },
+    { name: 'Cranberry Sauce', description: 'Bright, tart cranberry compote' },
+    { name: 'Green Bean Casserole', description: 'Baked green beans with creamy sauce and crispy topping' },
   ],
-  desserts: [
-    { name: 'Yule Log Cake', description: 'Chocolate sponge with mocha buttercream' },
-    { name: 'Pumpkin Pie', description: 'With fresh whipped cream' },
+  dessert: [
+    { name: 'Cheesecake', description: 'Rich, creamy cheesecake with seasonal toppings' },
+    { name: 'Pies', description: 'Assorted seasonal pies' },
+    { name: 'Eggnog', description: 'Classic spiced eggnog, served chilled' },
+  ],
+  drinks: [
+    { name: 'Mulled Wine', description: 'Warm spiced red wine with citrus and aromatics' },
+    { name: 'Whiskey Bar', description: 'Selection of whiskeys served neat or on the rocks' },
   ],
 };
+
 
 export function RSVPPage() {
   const [searchParams] = useSearchParams();
@@ -477,7 +488,7 @@ export function RSVPPage() {
             className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
             onClick={() => setShowMenuModal(false)}
           />
-          <div className="relative bg-cocoa/95 backdrop-blur-md rounded-2xl border border-gold/30 p-6 sm:p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-warm-lg animate-fade-in-up">
+          <div className="relative bg-cocoa/95 backdrop-blur-md rounded-2xl border border-gold/30 p-6 sm:p-8 max-w-3xl w-full max-h-[85vh] overflow-y-auto shadow-warm-lg animate-fade-in-up">
             <button
               onClick={() => setShowMenuModal(false)}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-snow/10 text-snow/70 hover:bg-snow/20 hover:text-snow flex items-center justify-center transition-all"
@@ -492,15 +503,15 @@ export function RSVPPage() {
               Prepared with love
             </p>
 
-            {/* Appetizers */}
+            {/* First Course */}
             <div className="mb-6">
               <h3 className="text-lg font-display text-cranberry mb-3 flex items-center gap-2">
                 <span className="w-8 h-[1px] bg-cranberry/50"></span>
-                Appetizers
+                First Course
                 <span className="flex-1 h-[1px] bg-cranberry/50"></span>
               </h3>
               <div className="space-y-3">
-                {MENU_ITEMS.appetizers.map((item, i) => (
+                {MENU_ITEMS.firstCourse.map((item, i) => (
                   <div key={i} className="pl-4">
                     <div className="text-snow font-medium">{item.name}</div>
                     <div className="text-snow/60 text-sm">{item.description}</div>
@@ -509,7 +520,7 @@ export function RSVPPage() {
               </div>
             </div>
 
-            {/* Mains */}
+            {/* Main Course */}
             <div className="mb-6">
               <h3 className="text-lg font-display text-cranberry mb-3 flex items-center gap-2">
                 <span className="w-8 h-[1px] bg-cranberry/50"></span>
@@ -544,14 +555,31 @@ export function RSVPPage() {
             </div>
 
             {/* Desserts */}
-            <div>
+            <div className='mb-6'>
               <h3 className="text-lg font-display text-gold mb-3 flex items-center gap-2">
                 <span className="w-8 h-[1px] bg-gold/50"></span>
                 Desserts
                 <span className="flex-1 h-[1px] bg-gold/50"></span>
               </h3>
               <div className="space-y-3">
-                {MENU_ITEMS.desserts.map((item, i) => (
+                {MENU_ITEMS.dessert.map((item, i) => (
+                  <div key={i} className="pl-4">
+                    <div className="text-snow font-medium">{item.name}</div>
+                    <div className="text-snow/60 text-sm">{item.description}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Beverages */}
+            <div>
+              <h3 className="text-lg font-display text-gold mb-3 flex items-center gap-2">
+                <span className="w-8 h-[1px] bg-gold/50"></span>
+                Beverages
+                <span className="flex-1 h-[1px] bg-gold/50"></span>
+              </h3>
+              <div className="space-y-3">
+                {MENU_ITEMS.drinks.map((item, i) => (
                   <div key={i} className="pl-4">
                     <div className="text-snow font-medium">{item.name}</div>
                     <div className="text-snow/60 text-sm">{item.description}</div>
