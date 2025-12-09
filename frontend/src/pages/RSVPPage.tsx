@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calendar, MapPin, UtensilsCrossed, X, UserPlus, Copy, Check } from 'lucide-react';
 import { Snowfall } from '../components/Decorations';
+import { Chat } from '../components/Chat';
 import { useMusicContext } from '../App';
 import api from '../services/api';
 import type { RSVPListResponse, UserPublicResponse, UserResponse } from '../types/api';
@@ -308,7 +309,7 @@ export function RSVPPage() {
       <div className="relative z-50 min-h-screen py-8 px-4 sm:px-8">
         <div className="max-w-6xl mx-auto">
           {/* Two column layout */}
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
             {/* Left Column - Guest List */}
             <div className="order-2 lg:order-1">
               <div className="bg-cocoa/30 backdrop-blur-md rounded-2xl border border-gold/20 p-6 sm:p-8 shadow-warm-lg">
@@ -415,6 +416,13 @@ export function RSVPPage() {
                   </button>
                 )}
               </div>
+
+              {/* Chat Component - below guest list */}
+              {userId && (
+                <div className="mt-8">
+                  <Chat userId={userId} />
+                </div>
+              )}
             </div>
 
             {/* Right Column - Event Details */}

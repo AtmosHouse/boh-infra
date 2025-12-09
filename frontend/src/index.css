@@ -203,3 +203,29 @@
     transform: translateY(0) scale(1);
   }
 }
+
+/* Custom minimalist scrollbar for chat */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 252, 247, 0.1);
+  border-radius: 3px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(232, 185, 35, 0.4);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 185, 35, 0.6);
+}
+
+/* Firefox scrollbar */
+.chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 185, 35, 0.4) rgba(255, 252, 247, 0.1);
+}

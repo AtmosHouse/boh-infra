@@ -349,3 +349,25 @@ export interface PlusOneCreate {
   first_name: string;
   last_name: string;
 }
+
+// =============================================================================
+// Chat Types
+// =============================================================================
+
+export interface ChatMessageCreate {
+  message: string;
+}
+
+export interface ChatMessageResponse {
+  id: number;
+  user_id: string;
+  message: string;
+  created_at: string;
+  user_first_name: string;
+  user_last_name: string;
+}
+
+export interface ChatListResponse {
+  messages: ChatMessageResponse[];
+  total: number;
+}

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import dishes, ingredients, recipes, shopping, stores, users
+from app.routers import chat, dishes, ingredients, recipes, shopping, stores, users
 
 app = FastAPI(
     title=settings.app_name,
@@ -48,6 +48,7 @@ app.include_router(shopping.router, prefix="/api/v1")
 app.include_router(recipes.router, prefix="/api/v1")
 app.include_router(stores.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
+app.include_router(chat.router, prefix="/api/v1")
 
 
 @app.get("/")

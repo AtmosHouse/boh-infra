@@ -1,5 +1,8 @@
 import axios from 'axios';
 import type {
+  ChatListResponse,
+  ChatMessageCreate,
+  ChatMessageResponse,
   CourseType,
   DishCreate,
   DishListResponse,
@@ -255,6 +258,21 @@ export const api = {
 
   deleteUser: async (userId: string): Promise<void> => {
     await apiClient.delete(`/users/${userId}`);
+  },
+
+  // Chat endpoints
+  getChatMessages: async (skip = 0, limit = 100): Promise<ChatListResponse> => {
+    const response = await apiClient.get<ChatListResponse>('/chat', {
+      params: { skip, limit },
+    });
+    return response.data;
+  },
+
+  sendChatMessage: async (userId: string, message: ChatMessageCreate): Promise<ChatMessageResponse> => {
+    const response = await apiClient.post<ChatMessageResponse>('/chat', message, {
+      params: { user_id: userId },
+    });
+    return response.data;
   },
 };
 

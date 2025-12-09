@@ -61,6 +61,11 @@ from app.models.users import (
     UserResponse,
     UserUpdate,
 )
+from app.models.chat import (
+    ChatMessageCreate,
+    ChatMessageResponse,
+    ChatListResponse,
+)
 
 __all__ = [
     # Dishes
@@ -118,4 +123,8 @@ __all__ = [
     "UserPublicResponse",
     "UserResponse",
     "UserUpdate",
+    # Chat
+    "ChatMessageCreate",
+    "ChatMessageResponse",
+    "ChatListResponse",
 ]
