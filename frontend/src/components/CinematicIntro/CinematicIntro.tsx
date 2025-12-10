@@ -79,9 +79,6 @@ function TypewriterText({ text, onComplete, audioRef }: {
   const totalLength = segments.reduce((acc, seg) => acc + seg.content.length, 0);
 
   useEffect(() => {
-    // Start from 0 on next frame to prevent flash
-    setCharIndex(0);
-
     // Resume the typewriter sound if it exists and is paused
     const tryPlayAudio = () => {
       if (audioRef.current && audioRef.current.paused) {
@@ -97,24 +94,33 @@ function TypewriterText({ text, onComplete, audioRef }: {
       tryPlayAudio();
     }
 
+    // Use requestAnimationFrame to delay the first character until after paint
+    // This prevents the flash of full text
     let index = 0;
-    const timer = setInterval(() => {
-      if (index < totalLength) {
-        index++;
-        setCharIndex(index);
-      } else {
-        clearInterval(timer);
-        setIsComplete(true);
-        // Pause the typewriter sound (don't reset currentTime)
-        if (audioRef.current) {
-          audioRef.current.pause();
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const rafId = requestAnimationFrame(() => {
+      setCharIndex(0); // Now safe to show first character
+
+      timer = setInterval(() => {
+        if (index < totalLength) {
+          index++;
+          setCharIndex(index);
+        } else {
+          if (timer) clearInterval(timer);
+          setIsComplete(true);
+          // Pause the typewriter sound (don't reset currentTime)
+          if (audioRef.current) {
+            audioRef.current.pause();
+          }
+          onComplete();
         }
-        onComplete();
-      }
-    }, TYPEWRITER_CONFIG.typingSpeed);
+      }, TYPEWRITER_CONFIG.typingSpeed);
+    });
 
     return () => {
-      clearInterval(timer);
+      cancelAnimationFrame(rafId);
+      if (timer) clearInterval(timer);
       // Pause audio when component unmounts (screen changes)
       if (audioRef.current) {
         audioRef.current.pause();

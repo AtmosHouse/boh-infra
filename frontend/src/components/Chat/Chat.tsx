@@ -13,7 +13,7 @@ export function Chat({ userId }: ChatProps) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isInitialMount = useRef(true);
+  const previousMessageCount = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,12 +39,12 @@ export function Chat({ userId }: ChatProps) {
   }, []);
 
   useEffect(() => {
-    // Skip scrolling on initial mount to prevent page from jumping to bottom
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
+    // Only scroll to bottom when NEW messages are added (not on initial load)
+    // Compare current message count with previous to detect new messages
+    if (previousMessageCount.current > 0 && messages.length > previousMessageCount.current) {
+      scrollToBottom();
     }
-    scrollToBottom();
+    previousMessageCount.current = messages.length;
   }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
