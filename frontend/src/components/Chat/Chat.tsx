@@ -13,6 +13,7 @@ export function Chat({ userId }: ChatProps) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,6 +39,11 @@ export function Chat({ userId }: ChatProps) {
   }, []);
 
   useEffect(() => {
+    // Skip scrolling on initial mount to prevent page from jumping to bottom
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     scrollToBottom();
   }, [messages]);
 

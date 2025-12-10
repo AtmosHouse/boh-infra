@@ -112,15 +112,45 @@ export function MusicPlayer({ shouldStart = false, hidden = false }: MusicPlayer
     }
   }, [volume]);
 
+  // Sync isPlaying state when audio is played/paused externally (e.g., from CinematicIntro)
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+      setHasAutoStarted(true);
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    return () => {
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+    };
+  }, []);
+
   // Start music when shouldStart becomes true (triggered by intro)
   useEffect(() => {
     if (!shouldStart || hasAutoStarted || !audioRef.current) return;
 
     const audio = audioRef.current;
 
+    // If audio is already playing (started by CinematicIntro click), just sync state
+    if (!audio.paused) {
+      setIsPlaying(true);
+      setHasAutoStarted(true);
+      return;
+    }
+
     // Wait for audio to be ready, then apply offset and play
     const startPlayback = () => {
-      if (currentSong.startOffset && !hasAppliedOffset.current) {
+      // Always apply offset for the first song - mobile's unlockAudio may have
+      // touched the audio already, so force-set currentTime regardless of hasAppliedOffset
+      if (currentSong.startOffset !== undefined) {
         audio.currentTime = currentSong.startOffset;
         hasAppliedOffset.current = true;
       }
@@ -179,6 +209,8 @@ export function MusicPlayer({ shouldStart = false, hidden = false }: MusicPlayer
         src={currentSong.url}
         onEnded={playNext}
         onError={playNext}
+        data-music-player="true"
+        data-start-offset={currentSong.startOffset ?? 0}
       />
 
       <button

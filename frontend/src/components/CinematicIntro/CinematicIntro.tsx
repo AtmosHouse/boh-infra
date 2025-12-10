@@ -17,8 +17,8 @@ const TYPEWRITER_CONFIG = {
   soundVolume: 1,            // 0 to 1 (base volume)
   soundGain: 1.2,            // Amplification multiplier (1 = normal, 2 = 2x louder)
   soundStartOffset: 1,       // seconds into the audio to start from
-  soundPlaybackRate: 2,      // 0.5 = half speed, 1 = normal, 2 = double speed
-  typingSpeed: 75,           // milliseconds between each character
+  soundPlaybackRate: 1,      // 0.5 = half speed, 1 = normal, 2 = double speed
+  typingSpeed: 60,           // milliseconds between each character
 };
 // ============================================
 
@@ -70,7 +70,7 @@ function TypewriterText({ text, onComplete, audioRef }: {
   onComplete: () => void;
   audioRef: React.RefObject<HTMLAudioElement | null>;
 }) {
-  const [charIndex, setCharIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(-1); // Start at -1 to prevent flash
   const [isComplete, setIsComplete] = useState(false);
 
   // Parse segments once
@@ -79,28 +79,22 @@ function TypewriterText({ text, onComplete, audioRef }: {
   const totalLength = segments.reduce((acc, seg) => acc + seg.content.length, 0);
 
   useEffect(() => {
-    // Try to start the typewriter sound
+    // Start from 0 on next frame to prevent flash
+    setCharIndex(0);
+
+    // Resume the typewriter sound if it exists and is paused
     const tryPlayAudio = () => {
-      if (audioRef.current) {
-        audioRef.current.currentTime = TYPEWRITER_CONFIG.soundStartOffset;
+      if (audioRef.current && audioRef.current.paused) {
+        // Don't reset currentTime - just resume from where it was
         audioRef.current.play().catch(() => {
           // Audio autoplay blocked - that's okay, typing will still work
         });
       }
     };
 
-    // If audio ref exists and is ready, play immediately
-    // Otherwise, try after a short delay to give time for audio to load
-    let delayTimer: ReturnType<typeof setTimeout> | null = null;
-    if (audioRef.current && audioRef.current.readyState >= 2) {
+    // If audio ref exists, try to resume it
+    if (audioRef.current) {
       tryPlayAudio();
-    } else {
-      // Small delay to allow audio to be created and unlocked
-      delayTimer = setTimeout(tryPlayAudio, 50);
-      // Also listen for when audio becomes ready
-      if (audioRef.current) {
-        audioRef.current.addEventListener('canplay', tryPlayAudio, { once: true });
-      }
     }
 
     let index = 0;
@@ -111,10 +105,9 @@ function TypewriterText({ text, onComplete, audioRef }: {
       } else {
         clearInterval(timer);
         setIsComplete(true);
-        // Stop the typewriter sound
+        // Pause the typewriter sound (don't reset currentTime)
         if (audioRef.current) {
           audioRef.current.pause();
-          audioRef.current.currentTime = 0;
         }
         onComplete();
       }
@@ -122,7 +115,7 @@ function TypewriterText({ text, onComplete, audioRef }: {
 
     return () => {
       clearInterval(timer);
-      if (delayTimer) clearTimeout(delayTimer);
+      // Pause audio when component unmounts (screen changes)
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -162,6 +155,11 @@ function TypewriterText({ text, onComplete, audioRef }: {
 
     return result;
   };
+
+  // Don't render anything until effect has started (charIndex >= 0)
+  if (charIndex < 0) {
+    return <span className="inline" />;
+  }
 
   return (
     <span className="inline">
@@ -246,13 +244,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
   const typewriterAudioRef = useRef<HTMLAudioElement | null>(null);
   const hdrVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Start music when title screen appears (only once)
-  useEffect(() => {
-    if (showTitle && !hasMusicStarted.current) {
-      hasMusicStarted.current = true;
-      onStartMusic();
-    }
-  }, [showTitle, onStartMusic]);
+  // Music is started when user clicks the final Continue/RSVP button (user gesture for mobile)
 
   // Unlock audio on mobile by playing/pausing the actual audio on first interaction
   const unlockAudio = () => {
@@ -276,26 +268,14 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
       // If Web Audio API fails, fall back to normal volume
     }
 
-    // Play and immediately pause to unlock audio on mobile
-    audio.play().then(() => {
-      audio.pause();
-      audio.currentTime = TYPEWRITER_CONFIG.soundStartOffset;
-    }).catch(() => {
+    // Play typewriter sound immediately (it's unlocked by user tap)
+    audio.currentTime = TYPEWRITER_CONFIG.soundStartOffset;
+    audio.play().catch(() => {
       // If play fails, still keep the audio reference
     });
 
-    // Also unlock all audio elements on the page (for the music player)
-    // This enables playback of audio that will be triggered later
-    document.querySelectorAll('audio').forEach((audioEl) => {
-      const promise = (audioEl as HTMLAudioElement).play();
-      if (promise) {
-        promise.then(() => {
-          (audioEl as HTMLAudioElement).pause();
-        }).catch(() => {
-          // Ignore errors
-        });
-      }
-    });
+    // NOTE: Do NOT touch the music player audio here!
+    // Music will be unlocked and started when user clicks RSVP/Continue button
   };
 
   const handleStart = () => {
@@ -348,12 +328,66 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
   }, []);
 
   const handleContinue = () => {
+    console.log('handleContinue called, isTypingComplete:', isTypingComplete);
     if (!isTypingComplete) return;
+
+    // Check if this is the last screen
+    const isLastScreen = currentScreen >= screens.length - 1;
+    console.log('currentScreen:', currentScreen, 'screens.length:', screens.length, 'isLastScreen:', isLastScreen);
+
+    // On last screen, stop typewriter and start music (user gesture for mobile)
+    if (isLastScreen) {
+      console.log('On last screen, stopping typewriter audio');
+      console.log('typewriterAudioRef.current:', typewriterAudioRef.current);
+
+      // ALWAYS stop typewriter sound completely
+      if (typewriterAudioRef.current) {
+        const audio = typewriterAudioRef.current;
+        console.log('Stopping audio, paused:', audio.paused, 'src:', audio.src);
+        audio.pause();
+        audio.loop = false;  // Prevent any looping
+        audio.currentTime = 0;
+        audio.src = '';  // Clear the source to fully stop
+        typewriterAudioRef.current = null;
+        console.log('Audio stopped and ref cleared');
+      } else {
+        console.log('No typewriter audio ref to stop!');
+      }
+
+      if (!hasMusicStarted.current) {
+        hasMusicStarted.current = true;
+
+        // Directly play music player audio during user gesture (required for mobile)
+        // This must happen synchronously during the click, not in a useEffect
+        const musicAudio = document.querySelector('audio[data-music-player]') as HTMLAudioElement;
+        console.log('Music audio element:', musicAudio);
+        console.log('Music audio src:', musicAudio?.src);
+        console.log('Music audio readyState:', musicAudio?.readyState);
+
+        if (musicAudio) {
+          // Apply offset before playing
+          const offset = musicAudio.dataset.startOffset;
+          if (offset) {
+            musicAudio.currentTime = parseFloat(offset);
+          }
+          musicAudio.play().then(() => {
+            console.log('Music started playing successfully');
+          }).catch((err) => {
+            console.log('Music autoplay blocked:', err);
+          });
+        } else {
+          console.log('No music audio element found!');
+        }
+
+        // Also call onStartMusic to update the MusicPlayer's state
+        onStartMusic();
+      }
+    }
 
     setIsFadingOut(true);
 
     setTimeout(() => {
-      if (currentScreen < screens.length - 1) {
+      if (!isLastScreen) {
         setCurrentScreen(prev => prev + 1);
         setIsTypingComplete(false);
         setIsFadingOut(false);
@@ -361,7 +395,7 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
         // Show title screen
         setShowTitle(true);
         setIsFadingOut(false);
-        // Animate title in stages - music starts when button is clicked, not here
+        // Animate title in stages
         setTimeout(() => setTitleAnimationStage(1), 100);
         setTimeout(() => setTitleAnimationStage(2), 600);
         setTimeout(() => setTitleAnimationStage(3), 1200);
@@ -370,7 +404,6 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
   };
 
   const handleFinalContinue = () => {
-    // Music already started when title screen appeared
     setIsFadingOut(true);
     setTimeout(() => {
       onComplete();
@@ -378,7 +411,6 @@ export function CinematicIntro({ onComplete, onStartMusic, guestName, showRSVPBu
   };
 
   const handleRSVPClick = () => {
-    // Music already started when title screen appeared
     if (onRSVP) {
       onRSVP();
     }
