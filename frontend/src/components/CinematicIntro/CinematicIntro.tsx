@@ -24,7 +24,7 @@ const TYPEWRITER_CONFIG = {
 
 const getScreens = (guestName?: string) => [
   {
-    text: "Snow fell in quiet sheets over a hidden hacker house, tucked in a winter forest, its windows cutting warm light into the cold night...",
+    text: "Snow fell in quiet sheets over a cozy home, tucked in a winter forest, its windows cutting warm light into the cold night...",
   },
   {
     text: "Inside, laptops slept on tables, lights were strung along the walls, and something rich simmered on the stove, wrapping every room in winter comfort...",
