@@ -1,4 +1,4 @@
-"""Pydantic models for shopping list generation."""
+"""Pydantic models for the shopping list."""
 
 from datetime import datetime
 from typing import Optional
@@ -8,73 +8,52 @@ from pydantic import BaseModel, Field
 from app.models.dishes import DishSummary
 
 
-class DataDefaults(BaseModel):
-    """Configuration for default values when data is missing."""
-
-    quantity: float = Field(1.0, description="Default quantity when missing")
-    price: float = Field(0.0, description="Default price when missing")
-    location: str = Field("Unknown", description="Default location when missing")
-    units: str = Field("each", description="Default units when missing")
-    ingredient: str = Field("Unknown Item", description="Default ingredient name when missing")
+# =============================================================================
+# Consolidated shopping list view (GET /shopping/list)
+# =============================================================================
 
 
-class ShoppingItem(BaseModel):
-    """Schema for a single shopping list item input."""
+class ShoppingContribution(BaseModel):
+    """One contribution to a shopping list line — a dish's usage or a manual entry."""
 
-    ingredient: str
-    quantity: float
-    units: str
-    location: str = ""
-    price: float = 0.0
-    done: bool = False
-    notes: str = ""
-    dish_id: Optional[int] = Field(None, description="ID of the dish this item belongs to")
-
-
-class ShoppingListRequest(BaseModel):
-    """Request schema for generating a shopping list."""
-
-    items: list[ShoppingItem] = Field(
-        ...,
-        description="List of ingredient items to consolidate into a shopping list",
-    )
-    defaults: Optional[DataDefaults] = Field(
-        None,
-        description="Default values for missing data",
-    )
-    enable_unit_conversion: bool = Field(
-        True,
-        description="Whether to enable automatic unit conversion",
-    )
+    instance_id: Optional[int] = Field(None, description="ingredient_instances.id")
+    item_id: Optional[int] = Field(None, description="shopping_list_items.id for manual entries")
+    dish_id: Optional[int] = None
+    dish_name: str = Field(description="Dish name, or 'Manual entry'")
+    quantity: Optional[float] = None
+    unit: Optional[str] = Field(None, description="Unit as entered")
+    notes: Optional[str] = None
 
 
-class ConsolidatedItem(BaseModel):
-    """Schema for a consolidated shopping list item."""
+class ShoppingListLineItem(BaseModel):
+    """A single consolidated line on the shopping list."""
 
-    location: str
-    ingredient: str
-    quantity: float
-    units: str
-    price: float
-
-
-class ValidationWarning(BaseModel):
-    """Schema for a data validation warning."""
-
-    row: int
-    message: str
+    key: str = Field(description="Stable identity: 'ingredient:<id>' or 'item:<id>'")
+    ingredient_id: Optional[int] = Field(None, description="Set when backed by an Ingredient")
+    item_id: Optional[int] = Field(None, description="Set for standalone manual items")
+    name: str
+    quantity: Optional[float] = Field(None, description="Total in display unit")
+    unit: Optional[str] = None
+    store_id: Optional[int] = None
+    is_done: bool = False
+    has_dish_items: bool = False
+    contributions: list[ShoppingContribution] = []
 
 
-class ShoppingListResponse(BaseModel):
-    """Response schema for generated shopping list."""
+class ShoppingListViewResponse(BaseModel):
+    """The full consolidated shopping list."""
 
-    items: list[ConsolidatedItem]
+    items: list[ShoppingListLineItem]
     total_items: int
-    warnings: list[ValidationWarning] = []
+    done_count: int
     conversions_applied: list[str] = []
 
 
-# Database-backed shopping list item schemas
+# =============================================================================
+# Manual shopping list items (database-backed)
+# =============================================================================
+
+
 class ShoppingListItemCreate(BaseModel):
     """Schema for creating a shopping list item."""
 
@@ -84,6 +63,7 @@ class ShoppingListItemCreate(BaseModel):
     category: Optional[str] = Field(None, max_length=100)
     notes: Optional[str] = None
     dish_id: Optional[int] = Field(None, description="ID of the associated dish")
+    store_id: Optional[int] = Field(None, description="ID of the store to buy from")
 
 
 class ShoppingListItemUpdate(BaseModel):
@@ -96,6 +76,7 @@ class ShoppingListItemUpdate(BaseModel):
     notes: Optional[str] = None
     is_checked: Optional[bool] = None
     dish_id: Optional[int] = None
+    store_id: Optional[int] = None
 
 
 class ShoppingListItemResponse(BaseModel):
@@ -109,6 +90,7 @@ class ShoppingListItemResponse(BaseModel):
     notes: Optional[str]
     is_checked: bool
     dish: Optional[DishSummary] = None
+    store_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

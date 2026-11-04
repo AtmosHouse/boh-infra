@@ -1,4 +1,4 @@
-"""API routes for shopping list generation."""
+"""API routes for the shopping list."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -7,77 +7,84 @@ from sqlalchemy.orm import selectinload
 
 from app.db import get_db
 from app.db.models import Dish as DishModel
+from app.db.models import IngredientInstance as IngredientInstanceModel
 from app.db.models import ShoppingListItem as ShoppingListItemModel
+from app.db.models import Store as StoreModel
 from app.models.dishes import CourseType, DishSummary
 from app.models.shopping import (
-    ConsolidatedItem,
-    ShoppingItem,
+    ShoppingContribution,
     ShoppingListItemCreate,
     ShoppingListItemResponse,
     ShoppingListItemsResponse,
     ShoppingListItemUpdate,
-    ShoppingListRequest,
-    ShoppingListResponse,
-    ValidationWarning,
+    ShoppingListLineItem,
+    ShoppingListViewResponse,
 )
-from app.services.data_validator import DataDefaults as ServiceDataDefaults
-from app.services.shopping_list import ShoppingListService
+from app.services.shopping_aggregator import consolidate
 from app.db.models import CourseType as DBCourseType
 
 router = APIRouter(prefix="/shopping", tags=["shopping"])
 
 
-@router.post("/generate", response_model=ShoppingListResponse)
-async def generate_shopping_list(request: ShoppingListRequest) -> ShoppingListResponse:
+@router.get("/list", response_model=ShoppingListViewResponse)
+async def get_shopping_list(
+    db: AsyncSession = Depends(get_db),
+) -> ShoppingListViewResponse:
     """
-    Generate a consolidated shopping list from ingredient items.
+    The consolidated shopping list.
 
-    Takes a list of shopping items and consolidates them by location and ingredient,
-    converting units where possible and summing quantities.
+    Merges ingredient usage across all dishes with standalone manual items.
+    Quantities in mixed units are converted into each ingredient's base unit;
+    unconvertible contributions become separate per-unit lines.
     """
-    # Convert request defaults to service defaults
-    service_defaults = None
-    if request.defaults:
-        service_defaults = ServiceDataDefaults(
-            quantity=request.defaults.quantity,
-            price=request.defaults.price,
-            location=request.defaults.location,
-            units=request.defaults.units,
-            ingredient=request.defaults.ingredient,
-        )
-
-    service = ShoppingListService(
-        defaults=service_defaults,
-        enable_unit_conversion=request.enable_unit_conversion,
+    dish_query = select(DishModel).options(
+        selectinload(DishModel.ingredient_instances)
+        .selectinload(IngredientInstanceModel.ingredient)
     )
+    dishes = (await db.execute(dish_query)).scalars().all()
 
-    consolidated = service.generate(request.items)
-    warnings = service.get_warnings()
-    conversions = service.get_conversions()
+    item_query = select(ShoppingListItemModel).options(
+        selectinload(ShoppingListItemModel.dish)
+    )
+    manual_items = (await db.execute(item_query)).scalars().all()
 
-    return ShoppingListResponse(
-        items=consolidated,
-        total_items=len(consolidated),
-        warnings=[ValidationWarning(row=w["row"], message=w["message"]) for w in warnings],
+    lines, conversions = consolidate(list(dishes), list(manual_items))
+
+    items = [
+        ShoppingListLineItem(
+            key=line.key,
+            ingredient_id=line.ingredient_id,
+            item_id=line.item_id,
+            name=line.name,
+            quantity=line.quantity,
+            unit=line.unit,
+            store_id=line.store_id,
+            is_done=line.is_done,
+            has_dish_items=line.has_dish_items,
+            contributions=[
+                ShoppingContribution(
+                    instance_id=c.instance_id,
+                    item_id=c.item_id,
+                    dish_id=c.dish_id,
+                    dish_name=c.dish_name,
+                    quantity=c.quantity,
+                    unit=c.unit,
+                    notes=c.notes,
+                )
+                for c in line.contributions
+            ],
+        )
+        for line in lines
+    ]
+
+    return ShoppingListViewResponse(
+        items=items,
+        total_items=len(items),
+        done_count=sum(1 for i in items if i.is_done),
         conversions_applied=conversions,
     )
 
 
-@router.post("/consolidate", response_model=list[ConsolidatedItem])
-async def consolidate_items(
-    items: list[ShoppingItem],
-    enable_unit_conversion: bool = True,
-) -> list[ConsolidatedItem]:
-    """
-    Simple endpoint to consolidate shopping items without full validation response.
-
-    Useful for quick consolidation without needing detailed warnings.
-    """
-    service = ShoppingListService(enable_unit_conversion=enable_unit_conversion)
-    return service.generate(items)
-
-
-# Database-backed shopping list endpoints
 def _db_course_to_pydantic(course: DBCourseType) -> CourseType:
     """Convert DB CourseType to Pydantic CourseType."""
     return CourseType(course.value)
@@ -101,6 +108,16 @@ async def create_shopping_item(
                 detail=f"Dish with id {item.dish_id} not found",
             )
 
+    # Verify store exists if provided
+    if item.store_id:
+        query = select(StoreModel).where(StoreModel.id == item.store_id)
+        result = await db.execute(query)
+        if not result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Store with id {item.store_id} not found",
+            )
+
     db_item = ShoppingListItemModel(
         ingredient_name=item.ingredient_name,
         quantity=item.quantity,
@@ -108,6 +125,7 @@ async def create_shopping_item(
         category=item.category,
         notes=item.notes,
         dish_id=item.dish_id,
+        store_id=item.store_id,
     )
     db.add(db_item)
     await db.flush()
@@ -129,6 +147,7 @@ async def create_shopping_item(
         category=db_item.category,
         notes=db_item.notes,
         is_checked=db_item.is_checked,
+        store_id=db_item.store_id,
         dish=dish_summary,
         created_at=db_item.created_at,
         updated_at=db_item.updated_at,
@@ -188,6 +207,7 @@ async def list_shopping_items(
                 category=item.category,
                 notes=item.notes,
                 is_checked=item.is_checked,
+                store_id=item.store_id,
                 dish=dish_summary,
                 created_at=item.created_at,
                 updated_at=item.updated_at,
@@ -237,6 +257,7 @@ async def get_shopping_item(
         category=item.category,
         notes=item.notes,
         is_checked=item.is_checked,
+        store_id=item.store_id,
         dish=dish_summary,
         created_at=item.created_at,
         updated_at=item.updated_at,
@@ -277,6 +298,20 @@ async def update_shopping_item(
             item.dish_id = item_update.dish_id
         else:
             item.dish_id = None
+
+    # Verify new store exists if provided
+    if item_update.store_id is not None:
+        if item_update.store_id != 0:  # 0 means remove store association
+            store_query = select(StoreModel).where(StoreModel.id == item_update.store_id)
+            store_result = await db.execute(store_query)
+            if not store_result.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Store with id {item_update.store_id} not found",
+                )
+            item.store_id = item_update.store_id
+        else:
+            item.store_id = None
 
     # Update fields
     if item_update.ingredient_name is not None:
@@ -320,6 +355,7 @@ async def update_shopping_item(
         category=item.category,
         notes=item.notes,
         is_checked=item.is_checked,
+        store_id=item.store_id,
         dish=dish_summary,
         created_at=item.created_at,
         updated_at=item.updated_at,
@@ -386,6 +422,7 @@ async def toggle_shopping_item(
         category=item.category,
         notes=item.notes,
         is_checked=item.is_checked,
+        store_id=item.store_id,
         dish=dish_summary,
         created_at=item.created_at,
         updated_at=item.updated_at,

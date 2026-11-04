@@ -48,7 +48,17 @@ async def create_dish(
     for ing_input in dish.ingredients:
         if ing_input.existing_ingredient_id:
             # Use existing ingredient
-            ingredient_id = ing_input.existing_ingredient_id
+            query = select(IngredientModel).where(
+                IngredientModel.id == ing_input.existing_ingredient_id
+            )
+            existing = (await db.execute(query)).scalar_one_or_none()
+            if not existing:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Ingredient with id {ing_input.existing_ingredient_id} not found",
+                )
+            ingredient_id = existing.id
+            base_unit = existing.unit
         else:
             # Create new ingredient
             if not ing_input.name:
@@ -63,21 +73,28 @@ async def create_dish(
 
             if existing:
                 ingredient_id = existing.id
+                base_unit = existing.unit
             else:
+                base_unit = unit_normalizer.normalize(ing_input.unit)
                 new_ingredient = IngredientModel(
                     name=ing_input.name.lower().strip(),
                     store_id=ing_input.store_id,
-                    unit=unit_normalizer.normalize(ing_input.unit),
+                    unit=base_unit,
                 )
                 db.add(new_ingredient)
                 await db.flush()
                 ingredient_id = new_ingredient.id
 
-        # Create instance
+        # Create instance, storing the unit the quantity was entered in
         instance = IngredientInstanceModel(
             ingredient_id=ingredient_id,
             dish_id=db_dish.id,
             quantity=ing_input.quantity,
+            unit=(
+                unit_normalizer.normalize(ing_input.unit)
+                if ing_input.unit
+                else base_unit
+            ),
             notes=ing_input.notes,
         )
         db.add(instance)

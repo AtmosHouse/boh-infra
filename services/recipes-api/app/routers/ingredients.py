@@ -170,10 +170,27 @@ async def create_ingredient_instance(
     db: AsyncSession = Depends(get_db),
 ) -> IngredientInstanceResponse:
     """Create a new ingredient instance for a dish."""
+    # Resolve the ingredient so the instance unit defaults to its base unit
+    ingredient = (
+        await db.execute(
+            select(IngredientModel).where(IngredientModel.id == instance.ingredient_id)
+        )
+    ).scalar_one_or_none()
+    if not ingredient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ingredient with id {instance.ingredient_id} not found",
+        )
+
     db_instance = IngredientInstanceModel(
         ingredient_id=instance.ingredient_id,
         dish_id=instance.dish_id,
         quantity=instance.quantity,
+        unit=(
+            unit_normalizer.normalize(instance.unit)
+            if instance.unit
+            else ingredient.unit
+        ),
         notes=instance.notes,
     )
     db.add(db_instance)
@@ -237,6 +254,8 @@ async def update_ingredient_instance(
         )
 
     update_data = instance_update.model_dump(exclude_unset=True)
+    if "unit" in update_data and update_data["unit"]:
+        update_data["unit"] = unit_normalizer.normalize(update_data["unit"])
     for field, value in update_data.items():
         setattr(instance, field, value)
 

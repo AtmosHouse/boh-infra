@@ -89,6 +89,7 @@ class DishIngredientResponse(BaseModel):
     id: int  # instance id
     ingredient_id: int
     quantity: float
+    unit: str
     notes: Optional[str]
     ingredient: IngredientInfo
 

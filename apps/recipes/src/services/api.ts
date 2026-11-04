@@ -19,8 +19,7 @@ import type {
   ShoppingListItemResponse,
   ShoppingListItemsResponse,
   ShoppingListItemUpdate,
-  ShoppingListRequest,
-  ShoppingListResponse,
+  ShoppingListViewResponse,
   StoreCreate,
   StoreListResponse,
   StoreResponse,
@@ -133,9 +132,9 @@ export const api = {
     return response.data;
   },
 
-  // Shopping list endpoints (consolidation)
-  generateShoppingList: async (request: ShoppingListRequest): Promise<ShoppingListResponse> => {
-    const response = await apiClient.post<ShoppingListResponse>('/shopping/generate', request);
+  // Consolidated shopping list (dish ingredients + manual items)
+  getShoppingList: async (): Promise<ShoppingListViewResponse> => {
+    const response = await apiClient.get<ShoppingListViewResponse>('/shopping/list');
     return response.data;
   },
 

@@ -124,6 +124,7 @@ class IngredientInstance(Base):
         Integer, ForeignKey("dishes.id", ondelete="CASCADE"), nullable=False
     )
     quantity: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
+    unit: Mapped[str] = mapped_column(String(50), nullable=False, default="each")
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -146,6 +147,9 @@ class ShoppingListItem(Base):
     dish_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("dishes.id", ondelete="SET NULL"), nullable=True
     )
+    store_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True
+    )
     ingredient_name: Mapped[str] = mapped_column(String(255), nullable=False)
     quantity: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     unit: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -161,6 +165,7 @@ class ShoppingListItem(Base):
 
     # Relationships
     dish: Mapped[Optional["Dish"]] = relationship("Dish", back_populates="shopping_items")
+    store: Mapped[Optional["Store"]] = relationship("Store")
 
     def __repr__(self) -> str:
         return f"<ShoppingListItem(id={self.id}, name='{self.ingredient_name}', checked={self.is_checked})>"

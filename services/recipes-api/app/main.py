@@ -24,7 +24,7 @@ Recipe & Shopping List API for managing dinner party ingredients.
 
 1. Create a dish using `/api/v1/dishes`
 2. Parse ingredients for a dish using `/api/v1/ingredients/parse`
-3. Generate a consolidated shopping list using `/api/v1/shopping/generate`
+3. View the consolidated shopping list at `/api/v1/shopping/list`
 4. Process multiple recipes at once using `/api/v1/recipes/process`
     """,
     docs_url="/docs",

@@ -220,7 +220,7 @@ export default function DishManager() {
   const renderIngredient = (_dish: DishResponse, ing: DishIngredientResponse) => (
     <div key={ing.id} className="group flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 bg-white/5 rounded-md text-xs sm:text-sm border border-white/5">
       <span className="min-w-[60px] sm:min-w-[80px] font-medium text-holly">
-        {ing.quantity ? `${ing.quantity} ${ing.ingredient.unit || ''}`.trim() : ''}
+        {ing.quantity ? `${ing.quantity} ${ing.unit || ''}`.trim() : ''}
       </span>
       <span className="flex-1 text-snow/90 min-w-0">{toTitleCase(ing.ingredient.name)}</span>
       {ing.ingredient.store && (

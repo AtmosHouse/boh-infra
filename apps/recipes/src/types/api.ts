@@ -28,7 +28,7 @@ export interface StoreBase {
   name: string;
 }
 
-export interface StoreCreate extends StoreBase {}
+export type StoreCreate = StoreBase;
 
 export interface StoreUpdate {
   name?: string;
@@ -55,7 +55,7 @@ export interface IngredientBase {
   is_purchased: boolean;
 }
 
-export interface IngredientCreate extends IngredientBase {}
+export type IngredientCreate = IngredientBase;
 
 export interface IngredientUpdate {
   name?: string;
@@ -83,13 +83,15 @@ export interface IngredientInstanceBase {
   ingredient_id: number;
   dish_id: number;
   quantity: number;
+  unit?: string;
   notes?: string;
 }
 
-export interface IngredientInstanceCreate extends IngredientInstanceBase {}
+export type IngredientInstanceCreate = IngredientInstanceBase;
 
 export interface IngredientInstanceUpdate {
   quantity?: number;
+  unit?: string;
   notes?: string;
 }
 
@@ -143,6 +145,7 @@ export interface DishIngredientResponse {
   id: number;
   ingredient_id: number;
   quantity: number;
+  unit: string;
   notes: string | null;
   ingredient: IngredientResponse;
 }
@@ -192,53 +195,41 @@ export interface Ingredient {
   notes: string;
 }
 
-// Shopping types
-export interface ShoppingItem {
-  ingredient: string;
-  quantity: number;
-  units: string;
-  location?: string;
-  price?: number;
-  done?: boolean;
-  notes?: string;
-  dish_id?: number;
+// =============================================================================
+// Consolidated shopping list view (GET /shopping/list)
+// =============================================================================
+
+export interface ShoppingContribution {
+  instance_id: number | null;
+  item_id: number | null;
+  dish_id: number | null;
+  dish_name: string;
+  quantity: number | null;
+  unit: string | null;
+  notes: string | null;
 }
 
-export interface DataDefaults {
-  quantity: number;
-  price: number;
-  location: string;
-  units: string;
-  ingredient: string;
+export interface ShoppingListLineItem {
+  key: string;
+  ingredient_id: number | null;
+  item_id: number | null;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  store_id: number | null;
+  is_done: boolean;
+  has_dish_items: boolean;
+  contributions: ShoppingContribution[];
 }
 
-export interface ShoppingListRequest {
-  items: ShoppingItem[];
-  defaults?: DataDefaults;
-  enable_unit_conversion?: boolean;
-}
-
-export interface ConsolidatedItem {
-  location: string;
-  ingredient: string;
-  quantity: number;
-  units: string;
-  price: number;
-}
-
-export interface ValidationWarning {
-  row: number;
-  message: string;
-}
-
-export interface ShoppingListResponse {
-  items: ConsolidatedItem[];
+export interface ShoppingListViewResponse {
+  items: ShoppingListLineItem[];
   total_items: number;
-  warnings: ValidationWarning[];
+  done_count: number;
   conversions_applied: string[];
 }
 
-// Database-backed shopping list item types
+// Database-backed shopping list item types (manual items)
 export interface ShoppingListItemCreate {
   ingredient_name: string;
   quantity?: number;
@@ -246,6 +237,7 @@ export interface ShoppingListItemCreate {
   category?: string;
   notes?: string;
   dish_id?: number;
+  store_id?: number;
 }
 
 export interface ShoppingListItemUpdate {
@@ -256,6 +248,7 @@ export interface ShoppingListItemUpdate {
   notes?: string;
   is_checked?: boolean;
   dish_id?: number;
+  store_id?: number;
 }
 
 export interface ShoppingListItemResponse {
@@ -267,6 +260,7 @@ export interface ShoppingListItemResponse {
   notes: string | null;
   is_checked: boolean;
   dish: DishSummary | null;
+  store_id: number | null;
   created_at: string;
   updated_at: string;
 }

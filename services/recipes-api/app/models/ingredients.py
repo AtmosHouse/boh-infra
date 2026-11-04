@@ -66,6 +66,11 @@ class IngredientInstanceBase(BaseModel):
     ingredient_id: int
     dish_id: int
     quantity: float = Field(1.0, description="Amount of the ingredient")
+    unit: Optional[str] = Field(
+        None,
+        description="Unit the quantity is expressed in; defaults to the "
+        "ingredient's base unit when omitted",
+    )
     notes: Optional[str] = Field(None, description="Additional notes")
 
 
@@ -79,6 +84,7 @@ class IngredientInstanceUpdate(BaseModel):
     """Schema for updating an IngredientInstance."""
 
     quantity: Optional[float] = None
+    unit: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -154,7 +160,12 @@ class DishIngredientInput(BaseModel):
     # New ingredient details (used if existing_ingredient_id is None)
     name: Optional[str] = Field(None, description="Name for new ingredient")
     store_id: Optional[int] = Field(None, description="Store ID for new ingredient")
-    unit: Optional[str] = Field("each", description="Unit for new ingredient")
     # Instance details
     quantity: float = Field(1.0, description="Amount needed for this dish")
+    unit: Optional[str] = Field(
+        None,
+        description="Unit the quantity is expressed in; for a new ingredient "
+        "this becomes its base unit, for an existing one it defaults to the "
+        "ingredient's base unit when omitted",
+    )
     notes: Optional[str] = Field(None, description="Notes for this dish's usage")

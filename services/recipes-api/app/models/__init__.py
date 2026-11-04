@@ -33,16 +33,13 @@ from app.models.recipes import (
     RecipeInput,
 )
 from app.models.shopping import (
-    ConsolidatedItem,
-    DataDefaults,
-    ShoppingItem,
+    ShoppingContribution,
     ShoppingListItemCreate,
     ShoppingListItemResponse,
     ShoppingListItemsResponse,
     ShoppingListItemUpdate,
-    ShoppingListRequest,
-    ShoppingListResponse,
-    ValidationWarning,
+    ShoppingListLineItem,
+    ShoppingListViewResponse,
 )
 from app.models.stores import (
     StoreBase,
@@ -82,16 +79,13 @@ __all__ = [
     "RecipeConfig",
     "RecipeInput",
     # Shopping
-    "ConsolidatedItem",
-    "DataDefaults",
-    "ShoppingItem",
+    "ShoppingContribution",
     "ShoppingListItemCreate",
     "ShoppingListItemResponse",
     "ShoppingListItemsResponse",
     "ShoppingListItemUpdate",
-    "ShoppingListRequest",
-    "ShoppingListResponse",
-    "ValidationWarning",
+    "ShoppingListLineItem",
+    "ShoppingListViewResponse",
     # Stores
     "StoreBase",
     "StoreCreate",
