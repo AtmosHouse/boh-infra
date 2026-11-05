@@ -266,6 +266,56 @@ def cmd_items_delete(args, client):
     _emit({"deleted": args.id}, args.json, lambda d: print(f"deleted item {args.id}"))
 
 
+def cmd_export(args, client):
+    """Export a multi-sheet xlsx workbook: shopping list, menu, ingredients."""
+    import openpyxl
+    from openpyxl.styles import Font
+    from openpyxl.utils import get_column_letter
+
+    bold = Font(bold=True)
+    wb = openpyxl.Workbook()
+
+    # Sheet 1: Shopping List (by store, with price col for budgeting)
+    data = _request(client, "GET", "/shopping/list")
+    stores = {s["id"]: s["name"] for s in _request(client, "GET", "/stores")["stores"]}
+    ws = wb.active
+    ws.title = "Shopping List"
+    ws.append(["store", "ingredient", "qty", "unit", "price", "done"])
+    for c in ws[1]:
+        c.font = bold
+    for i in sorted(data["items"], key=lambda x: (stores.get(x["store_id"], ""), x["name"])):
+        ws.append([stores.get(i["store_id"], "") if i["store_id"] else "",
+                   i["name"], i["quantity"], i["unit"], None, i["is_done"]])
+
+    # Sheet 2: Menu (master recipe list w/ links)
+    dishes = _request(client, "GET", "/dishes/", params={"limit": 500})["dishes"]
+    ws2 = wb.create_sheet("Menu")
+    ws2.append(["dish", "course", "servings", "recipe_url"])
+    for c in ws2[1]:
+        c.font = bold
+    for d in dishes:
+        ws2.append([d["name"], d["course"], d.get("servings"), d.get("recipe_url")])
+
+    # Sheet 3: Ingredients (per-dish breakdown)
+    ws3 = wb.create_sheet("Ingredients")
+    ws3.append(["dish", "ingredient", "qty", "unit", "notes"])
+    for c in ws3[1]:
+        c.font = bold
+    for d in dishes:
+        for inst in d.get("ingredient_instances", []):
+            ws3.append([d["name"], inst["ingredient"]["name"],
+                        inst["quantity"], inst.get("unit"), inst.get("notes")])
+
+    for sheet in (ws, ws2, ws3):
+        for idx, col in enumerate(sheet.columns, 1):
+            w = max(len(str(c.value or "")) for c in col)
+            sheet.column_dimensions[get_column_letter(idx)].width = min(w + 2, 60)
+        sheet.freeze_panes = "A2"
+
+    wb.save(args.file)
+    print(f"wrote {args.file}: {len(data['items'])} items, {len(dishes)} dishes")
+
+
 def cmd_shopping_list(args, client):
     data = _request(client, "GET", "/shopping/list")
     if args.csv:
@@ -355,6 +405,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--json", action="store_true")
     sp.add_argument("--csv", action="store_true", help="emit CSV to stdout")
     sp.set_defaults(handler=cmd_shopping_list)
+    sp = shsub.add_parser("export", help="export xlsx workbook (list + menu + ingredients)")
+    sp.add_argument("file", help="output .xlsx path")
+    sp.set_defaults(handler=cmd_export)
 
     return p
 
