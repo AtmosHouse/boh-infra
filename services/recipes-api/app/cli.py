@@ -280,12 +280,12 @@ def cmd_export(args, client):
     stores = {s["id"]: s["name"] for s in _request(client, "GET", "/stores")["stores"]}
     ws = wb.active
     ws.title = "Shopping List"
-    ws.append(["store", "ingredient", "qty", "unit", "price", "done"])
+    ws.append(["store", "ingredient", "qty", "unit", "price", "purchaser", "done"])
     for c in ws[1]:
         c.font = bold
     for i in sorted(data["items"], key=lambda x: (stores.get(x["store_id"], ""), x["name"])):
         ws.append([stores.get(i["store_id"], "") if i["store_id"] else "",
-                   i["name"], i["quantity"], i["unit"], None, i["is_done"]])
+                   i["name"], i["quantity"], i["unit"], None, None, i["is_done"]])
 
     # Sheet 2: Menu (master recipe list w/ links)
     dishes = _request(client, "GET", "/dishes/", params={"limit": 500})["dishes"]
@@ -297,14 +297,17 @@ def cmd_export(args, client):
         ws2.append([d["name"], d["course"], d.get("servings"), d.get("recipe_url")])
 
     # Sheet 3: Ingredients (per-dish breakdown)
-    ws3 = wb.create_sheet("Ingredients")
-    ws3.append(["dish", "ingredient", "qty", "unit", "notes"])
+    ws3 = wb.create_sheet("By Dish")
+    ws3.append(["dish", "ingredient", "qty", "unit", "store", "price", "done", "recipe_url", "notes"])
     for c in ws3[1]:
         c.font = bold
     for d in dishes:
         for inst in d.get("ingredient_instances", []):
-            ws3.append([d["name"], inst["ingredient"]["name"],
-                        inst["quantity"], inst.get("unit"), inst.get("notes")])
+            ing = inst["ingredient"]
+            sid = ing.get("store_id")
+            ws3.append([d["name"], ing["name"], inst["quantity"], inst.get("unit"),
+                        stores.get(sid, "") if sid else "", None, ing["is_purchased"],
+                        d.get("recipe_url"), inst.get("notes")])
 
     for sheet in (ws, ws2, ws3):
         for idx, col in enumerate(sheet.columns, 1):
