@@ -268,6 +268,18 @@ def cmd_items_delete(args, client):
 
 def cmd_shopping_list(args, client):
     data = _request(client, "GET", "/shopping/list")
+    if args.csv:
+        import csv
+        stores = _request(client, "GET", "/stores")
+        names = {s["id"]: s["name"] for s in stores["stores"]}
+        w = csv.writer(sys.stdout)
+        w.writerow(["store", "ingredient", "qty", "unit", "done"])
+        for i in data["items"]:
+            sid = i["store_id"]
+            w.writerow([names.get(sid, "") if sid else "", i["name"],
+                        i["quantity"] if i["quantity"] is not None else "",
+                        i["unit"] or "", i["is_done"]])
+        return
     if args.json:
         _emit(data, True)
         return
@@ -341,6 +353,7 @@ def build_parser() -> argparse.ArgumentParser:
     shsub = sh.add_subparsers(dest="sub", required=True)
     sp = shsub.add_parser("list")
     sp.add_argument("--json", action="store_true")
+    sp.add_argument("--csv", action="store_true", help="emit CSV to stdout")
     sp.set_defaults(handler=cmd_shopping_list)
 
     return p
