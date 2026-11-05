@@ -32,6 +32,7 @@ All commands support `--json` (use it — machine-readable output).
 - `recipes dishes list [--course X]` / `dishes show <id>` / `dishes delete <id>`
 - `recipes dishes create --file <dish.json>` (`--file -` reads stdin)
 - `recipes ingredients list [--search <q>]`  ← dedupe check
+- `recipes ingredients set <id> [--name --unit --store-id N|--store-id 0 --done|--undone]`
 - `recipes stores list|create <name>|delete <id>`
 - `recipes items list|add <name> [--qty --unit --category --notes --dish-id --store-id]|toggle <id>|delete <id>`
 - `recipes shopping list`  ← consolidated, grouped by store
@@ -98,9 +99,10 @@ All commands support `--json` (use it — machine-readable output).
 - Non-recipe supplies (foil, napkins, charcoal) → `recipes items add`.
   Name-matching a manual item to an existing ingredient merges it into
   that line with unit conversion.
-- Marking purchased: dish-derived lines toggle via the ingredient's
-  `is_purchased` (no CLI verb yet — use the web UI or PATCH the API);
-  manual items via `recipes items toggle <id>`.
+- Marking done: dish-derived lines → `recipes ingredients set <ingredient_id>
+  --done` (id is on the line item); manual items → `recipes items toggle <id>`.
+- Assigning a store: `recipes ingredients set <ingredient_id> --store-id N`
+  (`--store-id 0` clears); manual items take `--store-id` on `items add`.
 
 ## Rules
 

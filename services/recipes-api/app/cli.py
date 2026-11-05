@@ -197,6 +197,22 @@ def cmd_ingredients_list(args, client):
     _emit(data, args.json, _render_ingredients)
 
 
+def cmd_ingredients_set(args, client):
+    payload: dict[str, Any] = {}
+    if args.name is not None:
+        payload["name"] = args.name
+    if args.unit is not None:
+        payload["unit"] = args.unit
+    if args.store_id is not None:
+        payload["store_id"] = args.store_id or None  # 0 clears the store
+    if args.done is not None:
+        payload["is_purchased"] = args.done
+    if not payload:
+        raise ApiError("nothing to update — pass --name/--unit/--store-id/--done/--undone")
+    data = _request(client, "PUT", f"/ingredients/{args.id}", json=payload)
+    _emit(data, args.json, lambda d: print(json.dumps(d)))
+
+
 def cmd_stores_list(args, client):
     data = _request(client, "GET", "/stores")
     _emit(data, args.json, _render_stores)
@@ -287,6 +303,13 @@ def build_parser() -> argparse.ArgumentParser:
     igsub = ig.add_subparsers(dest="sub", required=True)
     sp = igsub.add_parser("list"); sp.add_argument("--search"); sp.add_argument("--json", action="store_true")
     sp.set_defaults(handler=cmd_ingredients_list)
+    sp = igsub.add_parser("set", help="update an ingredient (store, purchased, name, unit)")
+    sp.add_argument("id", type=int)
+    sp.add_argument("--name"); sp.add_argument("--unit"); sp.add_argument("--store-id", type=int)
+    g = sp.add_mutually_exclusive_group()
+    g.add_argument("--done", dest="done", action="store_const", const=True, default=None)
+    g.add_argument("--undone", dest="done", action="store_const", const=False)
+    sp.add_argument("--json", action="store_true"); sp.set_defaults(handler=cmd_ingredients_set)
 
     st = sub.add_parser("stores", help="store operations")
     stsub = st.add_subparsers(dest="sub", required=True)
