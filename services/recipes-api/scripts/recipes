@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Thin wrapper so `recipes` works from any cwd using the service venv.
+set -euo pipefail
+SERVICE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec "$SERVICE_DIR/.venv/bin/python" -m app.cli "$@"

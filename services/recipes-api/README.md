@@ -24,3 +24,10 @@ Defaults to `sqlite+aiosqlite:///./recipes.db`. See `.env.example` for
 `DATABASE_URL` (Postgres) and `OPENAI_API_KEY`/`OPENAI_MODEL` (ingredient parsing).
 
 `scripts/make_shopping_list.py` is the original standalone CLI consolidator.
+
+## recipes CLI
+
+`scripts/recipes` wraps this API for agent/terminal use (run the API first).
+Commands: `dishes list|show|create|delete`, `ingredients list --search`,
+`stores`, `items`, `shopping list`. `--json` for machine-readable output.
+Dish creation takes a DishCreate JSON file — see `.devin/skills/recipes/`.

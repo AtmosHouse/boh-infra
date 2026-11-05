@@ -21,5 +21,9 @@ dev-invite-api:
 dev-recipes:
 	cd apps/recipes && npm run dev -- --port 5174
 
+# recipes CLI — e.g. make cli ARGS="shopping list --json"
+cli:
+	@services/recipes-api/scripts/recipes $(ARGS)
+
 dev-invite:
 	cd apps/invite && npm run dev -- --port 5173
