@@ -34,6 +34,9 @@ class DishBase(BaseModel):
     description: Optional[str] = Field(
         None, description="Optional description of the dish"
     )
+    instructions: Optional[str] = Field(
+        None, description="Method/preparation notes for the dish"
+    )
     servings: Optional[int] = Field(None, ge=1, description="Number of servings")
     recipe_url: Optional[str] = Field(
         None, max_length=500, description="URL to the recipe"
@@ -55,6 +58,7 @@ class DishUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     course: Optional[CourseType] = None
     description: Optional[str] = None
+    instructions: Optional[str] = None
     servings: Optional[int] = Field(None, ge=1)
     recipe_url: Optional[str] = Field(None, max_length=500)
 

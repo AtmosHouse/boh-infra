@@ -61,6 +61,7 @@ class Dish(Base):
         nullable=False,
     )
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    instructions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     servings: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     recipe_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

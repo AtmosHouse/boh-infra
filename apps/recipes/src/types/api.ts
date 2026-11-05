@@ -109,6 +109,7 @@ export interface DishBase {
   name: string;
   course: CourseType;
   description?: string;
+  instructions?: string;
   servings?: number;
   recipe_url?: string;
 }

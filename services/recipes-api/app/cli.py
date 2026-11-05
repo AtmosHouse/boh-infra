@@ -223,6 +223,13 @@ def cmd_stores_create(args, client):
     _emit(data, args.json, lambda d: print(json.dumps(d)))
 
 
+def cmd_stores_assign(args, client):
+    for iid in args.ingredient_ids:
+        _request(client, "PUT", f"/ingredients/{iid}", json={"store_id": args.store_id})
+    out = {"store_id": args.store_id, "assigned": args.ingredient_ids}
+    _emit(out, args.json, lambda d: print(f"assigned {len(args.ingredient_ids)} ingredients to store {args.store_id}"))
+
+
 def cmd_stores_delete(args, client):
     _request(client, "DELETE", f"/stores/{args.id}")
     _emit({"deleted": args.id}, args.json, lambda d: print(f"deleted store {args.id}"))
@@ -316,6 +323,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp = stsub.add_parser("list"); sp.add_argument("--json", action="store_true"); sp.set_defaults(handler=cmd_stores_list)
     sp = stsub.add_parser("create"); sp.add_argument("name"); sp.add_argument("--json", action="store_true"); sp.set_defaults(handler=cmd_stores_create)
     sp = stsub.add_parser("delete"); sp.add_argument("id", type=int); sp.add_argument("--json", action="store_true"); sp.set_defaults(handler=cmd_stores_delete)
+    sp = stsub.add_parser("assign", help="assign ingredients to a store (bulk)")
+    sp.add_argument("store_id", type=int); sp.add_argument("ingredient_ids", type=int, nargs="+")
+    sp.add_argument("--json", action="store_true"); sp.set_defaults(handler=cmd_stores_assign)
 
     it = sub.add_parser("items", help="manual shopping list items")
     itsub = it.add_subparsers(dest="sub", required=True)

@@ -209,6 +209,8 @@ async def update_dish(
         dish.course = pydantic_course_to_db(dish_update.course)
     if dish_update.description is not None:
         dish.description = dish_update.description
+    if dish_update.instructions is not None:
+        dish.instructions = dish_update.instructions
     if dish_update.servings is not None:
         dish.servings = dish_update.servings
 

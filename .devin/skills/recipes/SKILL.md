@@ -34,6 +34,7 @@ All commands support `--json` (use it — machine-readable output).
 - `recipes ingredients list [--search <q>]`  ← dedupe check
 - `recipes ingredients set <id> [--name --unit --store-id N|--store-id 0 --done|--undone]`
 - `recipes stores list|create <name>|delete <id>`
+- `recipes stores assign <store_id> <ingredient_id>...`  ← bulk store assignment
 - `recipes items list|add <name> [--qty --unit --category --notes --dish-id --store-id]|toggle <id>|delete <id>`
 - `recipes shopping list`  ← consolidated, grouped by store
 
@@ -106,7 +107,12 @@ All commands support `--json` (use it — machine-readable output).
 
 ## Rules
 
-- Never duplicate ingredients — always search first.
+- Never duplicate ingredients — always search first. Watch for silent
+  near-duplicates that split lines: "shallot" vs "shallots", "chicken
+  broth" vs "chicken stock", "green onion" vs "scallion". Use the exact
+  name `ingredients list` returns.
+- Dishes accept `instructions` for method notes (steps, timing,
+  day-ahead prep) — keep `description` as a one-line blurb.
 - Never invent quantities; if the recipe doesn't say, use
   `quantity: 1, unit: "each"` + note "amount unspecified".
 - Show the user what you parsed before creating dishes.
